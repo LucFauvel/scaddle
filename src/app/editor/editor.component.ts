@@ -1,9 +1,10 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import * as monaco from 'monaco-editor';
+import { RendererComponent } from "../renderer/renderer.component";
 
 @Component({
   selector: 'app-editor',
-  imports: [],
+  imports: [RendererComponent],
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit {

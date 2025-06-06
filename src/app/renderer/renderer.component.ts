@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, HostListener, model } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OpenscadService } from '../services/openscad.service';
 
 @Component({
   selector: 'app-renderer',
@@ -14,7 +15,7 @@ export class RendererComponent implements AfterViewInit {
   renderer!: THREE.WebGLRenderer;
   controls!: OrbitControls;
 
-  constructor(private elementRef: ElementRef) {}
+  constructor(private elementRef: ElementRef, private openscadService: OpenscadService) {}
 
   ngAfterViewInit(): void {
     this.scene = new THREE.Scene();

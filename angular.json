@@ -23,17 +23,18 @@
             "assets": [
               {
                 "glob": "**/*",
-                "input": "openscad-wasm/build"
+                "input": "public"
               },
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "src/openscad-wasm/build"
               }
             ],
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+            ]
           },
           "configurations": {
             "production": {

@@ -1,7 +1,7 @@
-import { AfterViewInit, Component, ElementRef, HostListener, model } from '@angular/core';
+import { AfterViewInit, Component, effect, ElementRef, HostListener, input } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { OpenscadService } from '../services/openscad.service';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 @Component({
   selector: 'app-renderer',
@@ -9,13 +9,30 @@ import { OpenscadService } from '../services/openscad.service';
   template: '',
 })
 export class RendererComponent implements AfterViewInit {
-  scadCode = model('');
   scene!: THREE.Scene;
   camera!: THREE.PerspectiveCamera;
   renderer!: THREE.WebGLRenderer;
   controls!: OrbitControls;
+  stlBytes = input<Uint8Array | null>();
 
-  constructor(private elementRef: ElementRef, private openscadService: OpenscadService) {}
+  constructor(private elementRef: ElementRef) {
+    effect(() => {
+      const stlBytes = this.stlBytes();
+      console.log('STL Bytes:', stlBytes);
+      if (stlBytes) {
+        const blob = new Blob([stlBytes], { type: 'application/sla' });
+        const url = URL.createObjectURL(blob);
+        const loader = new STLLoader();
+        loader.load(url, (geometry) => {
+          const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+          const mesh = new THREE.Mesh(geometry, material);
+          this.scene.add(mesh);
+          this.controls.update();
+          URL.revokeObjectURL(url); // Clean up the URL after loading
+        });
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     this.scene = new THREE.Scene();
@@ -30,18 +47,12 @@ export class RendererComponent implements AfterViewInit {
     const gridHelper = new THREE.GridHelper(size, divisions);
     this.scene.add(gridHelper);
 
-    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-    const cube = new THREE.Mesh( geometry, material );
-    this.scene.add(cube);
     this.renderer.setSize(this.elementRef.nativeElement.clientWidth, this.elementRef.nativeElement.clientHeight);
     this.camera.position.z = 5;
     this.camera.position.y = 1;
     this.controls.update();
 
     const animate = () => {
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
       this.controls.update();
       this.renderer.render(this.scene, this.camera);
     };
@@ -53,6 +64,7 @@ export class RendererComponent implements AfterViewInit {
   onResize(_event: Event) {
     this.renderer.setSize(this.elementRef.nativeElement.clientWidth, this.elementRef.nativeElement.clientHeight);
     this.camera.aspect = this.elementRef.nativeElement.clientWidth / this.elementRef.nativeElement.clientHeight;
+    this.camera.updateProjectionMatrix();
     this.controls.update();
   }
 }

@@ -1,6 +1,7 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
+import { OpenscadService } from '../services/openscad.service';
 
 @Component({
   selector: 'app-editor',
@@ -9,7 +10,10 @@ import { RendererComponent } from "../renderer/renderer.component";
 })
 export class EditorComponent implements OnInit {
   editor!: monaco.editor.IStandaloneCodeEditor;
+  currentStl = signal<Uint8Array | null>(null);
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
+
+  constructor(private openscadService: OpenscadService) {}
 
   ngOnInit() {
     monaco.languages.register({
@@ -26,6 +30,19 @@ export class EditorComponent implements OnInit {
       automaticLayout: true,
       language: 'openscad',
       theme: 'vs-dark',
+    });
+
+    this.openscadService.generateStlFromScad(this.editor.getValue()).then(stlData => {
+      this.currentStl.set(stlData);
+    }).catch(error => console.error('Error generating STL:', error));
+
+    this.editor.onDidChangeModelContent(() => {
+      const code = this.editor.getValue();
+      this.openscadService.generateStlFromScad(code).then(stlData => {
+        this.currentStl.set(stlData);
+      }).catch(error => {
+        console.error('Error generating STL:', error);
+      });
     });
   }
 }

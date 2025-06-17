@@ -15,10 +15,10 @@ export class OpenscadService {
   async generateStlFromScad(scadCode: string): Promise<Uint8Array> {
     console.log('Generating STL from SCAD code:', scadCode);
     const awaitedInstance = await this.instance;
+
     awaitedInstance.FS.writeFile('/input.scad', scadCode);
-    awaitedInstance.callMain(['/input.scad', '-o', 'output.stl']);
-    const state = awaitedInstance.FS.readFile('/output.stl');
-    console.log(`STL generation completed, reading output file... ${state}`);
+    const code = awaitedInstance.callMain(['/input.scad', '-o', 'output.stl']);
+    console.log(`STL generation completed, reading output file... ${code}`);
     return awaitedInstance.FS.readFile('/output.stl') as Uint8Array;
   }
 }

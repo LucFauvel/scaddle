@@ -14,6 +14,7 @@ export class RendererComponent implements AfterViewInit {
   renderer!: THREE.WebGLRenderer;
   controls!: OrbitControls;
   stlBytes = input<Uint8Array | null>();
+  currentMesh?: THREE.Mesh;
 
   constructor(private elementRef: ElementRef) {
     effect(() => {
@@ -24,9 +25,13 @@ export class RendererComponent implements AfterViewInit {
         const url = URL.createObjectURL(blob);
         const loader = new STLLoader();
         loader.load(url, (geometry) => {
-          const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+          const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
           const mesh = new THREE.Mesh(geometry, material);
+          if (this.currentMesh) {
+            this.scene.remove(this.currentMesh);
+          }
           this.scene.add(mesh);
+          this.currentMesh = mesh;
           this.controls.update();
           URL.revokeObjectURL(url); // Clean up the URL after loading
         });

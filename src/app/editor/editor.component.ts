@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
 
@@ -7,7 +7,7 @@ import { RendererComponent } from "../renderer/renderer.component";
   imports: [RendererComponent],
   templateUrl: './editor.component.html',
 })
-export class EditorComponent implements OnInit {
+export class EditorComponent implements OnInit, AfterViewInit {
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
   currentStl = signal<Uint8Array | null>(null);
@@ -41,6 +41,33 @@ export class EditorComponent implements OnInit {
       const code = this.editor.getValue();
       this.worker.postMessage({ scadCode: code });
     });
+  }
+
+  ngAfterViewInit(): void {
+    // Ensure the editor is properly sized after view initialization
+    this.editor.layout();
+  }
+
+  saveStl() {
+    const bytes = this.currentStl();
+    if (bytes) {
+      const blob = new Blob([bytes], { type: 'application/sla' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'model.stl';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      console.error('No STL data available to save.');
+    }
+  }
+
+  render() {
+    const code = this.editor.getValue();
+    this.worker.postMessage({ scadCode: code });
   }
 }
 

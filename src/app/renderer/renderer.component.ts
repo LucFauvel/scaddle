@@ -25,8 +25,9 @@ export class RendererComponent implements AfterViewInit {
         const url = URL.createObjectURL(blob);
         const loader = new STLLoader();
         loader.load(url, (geometry) => {
-          const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+          const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
           const mesh = new THREE.Mesh(geometry, material);
+          mesh.scale.set(0.1, 0.1, 0.1);
           if (this.currentMesh) {
             this.scene.remove(this.currentMesh);
           }
@@ -38,6 +39,41 @@ export class RendererComponent implements AfterViewInit {
       }
     });
   }
+
+  private createLabel(text: string, position: THREE.Vector3): THREE.Sprite {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) {
+        throw new Error('Failed to get 2D context');
+    }
+    const fontSize = 10; // Reduced font size for better readability
+    context.font = `bold ${fontSize}px Arial`;
+    const textMetrics = context.measureText(text);
+    canvas.width = textMetrics.width;
+    canvas.height = fontSize;
+
+    // It's important to set the font again after resizing the canvas
+    context.font = `bold ${fontSize}px Arial`;
+    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+    });
+    const sprite = new THREE.Sprite(material);
+    // Adjust the scale of the sprite
+    sprite.scale.set(0.07 * fontSize, 0.035 * fontSize, 1.0);
+    sprite.position.copy(position);
+
+    return sprite;
+  }
+
 
   ngAfterViewInit(): void {
     this.scene = new THREE.Scene();
@@ -51,6 +87,32 @@ export class RendererComponent implements AfterViewInit {
 
     const gridHelper = new THREE.GridHelper(size, divisions);
     this.scene.add(gridHelper);
+
+    // Add labels to the grid edges
+    const halfSize = size / 2;
+    const step = size / divisions;
+    const labelYOffset = 0.1; // To lift labels slightly above the grid
+    const labelEdgeOffset = 0.2; // To place labels just outside the grid
+
+    // Labels for X-axis, placed along the Z = -halfSize edge
+    for (let i = -halfSize; i <= halfSize; i++) {
+        const pos = i * step;
+        this.scene.add(this.createLabel((pos * 10).toString(), new THREE.Vector3(pos, labelYOffset, -halfSize - labelEdgeOffset)));
+    }
+
+    // Labels for Z-axis, placed along the X = -halfSize edge
+    for (let i = -halfSize + 1; i <= halfSize; i++) { // Start from -halfSize + 1 to avoid duplicating the corner label
+        const pos = i * step;
+        this.scene.add(this.createLabel((pos * 10).toString(), new THREE.Vector3(-halfSize - labelEdgeOffset, labelYOffset, pos)));
+    }
+
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 3);
+    directionalLight1.position.set(10, 10, 10); // position the light
+    this.scene.add(directionalLight1);
+
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 3);
+    directionalLight2.position.set(-10, -10, -10); // position the light
+    this.scene.add(directionalLight2);
 
     this.renderer.setSize(this.elementRef.nativeElement.clientWidth, this.elementRef.nativeElement.clientHeight);
     this.camera.position.z = 5;

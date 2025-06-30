@@ -1,10 +1,11 @@
 import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
+import { ChatComponent } from "../chat/chat.component";
 
 @Component({
   selector: 'app-editor',
-  imports: [RendererComponent],
+  imports: [RendererComponent, ChatComponent],
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {

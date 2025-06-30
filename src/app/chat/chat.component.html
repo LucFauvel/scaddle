@@ -1,0 +1,16 @@
+<div class="flex flex-col h-full bg-black text-white font-mono">
+  <div class="overflow-scroll p-2">
+    <div #output class="h-full rounded p-2 border border-gray-700">
+      Your wish is my command chief.
+    </div>
+  </div>
+  <div class="flex items-center mt-auto border-t border-gray-700 px-4 py-2">
+    <span class="text-green-400 mr-2">$</span>
+    <input
+      class="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none"
+      type="text"
+      placeholder="Type something to generate here..."
+      (keydown.enter)="sendMessage($event)"
+    />
+  </div>
+</div>

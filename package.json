@@ -1,44 +1,17 @@
 {
   "name": "scaddle",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "private": true,
-  "dependencies": {
-    "@angular/common": "^19.2.0",
-    "@angular/compiler": "^19.2.0",
-    "@angular/core": "^19.2.0",
-    "@angular/forms": "^19.2.0",
-    "@angular/platform-browser": "^19.2.0",
-    "@angular/platform-browser-dynamic": "^19.2.0",
-    "@angular/router": "^19.2.0",
-    "@tailwindcss/postcss": "^4.1.8",
-    "@zenfs/core": "^2.3.1",
-    "monaco-editor": "^0.52.2",
-    "postcss": "^8.5.3",
-    "rxjs": "~7.8.0",
-    "tailwindcss": "^4.1.8",
-    "three": "^0.177.0",
-    "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL-3.0",
+  "packageManager": "pnpm@10.12.1",
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.2.14",
-    "@angular/cli": "^19.2.14",
-    "@angular/compiler-cli": "^19.2.0",
-    "@types/jasmine": "~5.1.0",
-    "@types/three": "^0.177.0",
-    "jasmine-core": "~5.6.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.7.2"
+    "turbo": "^2.5.4"
   }
 }

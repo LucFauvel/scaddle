@@ -108,6 +108,15 @@ importers:
       '@trpc/server':
         specifier: ^11.4.3
         version: 11.4.3(typescript@5.7.3)
+      '@types/cors':
+        specifier: ^2.8.19
+        version: 2.8.19
+      cors:
+        specifier: ^2.8.5
+        version: 2.8.5
+      zod:
+        specifier: ^3.25.73
+        version: 3.25.73
 
 packages:
 
@@ -1721,6 +1730,9 @@ packages:
 
   '@types/cors@2.8.18':
     resolution: {integrity: sha512-nX3d0sxJW41CqQvfOzVG1NCTXfFDrDWIghCZncpHeWlVFd81zxB/DLhg7avFg6eHLCRX7ckBmoIIcqa++upvJA==}
+
+  '@types/cors@2.8.19':
+    resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -4522,6 +4534,9 @@ packages:
     resolution: {integrity: sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA==}
     engines: {node: '>=18'}
 
+  zod@3.25.73:
+    resolution: {integrity: sha512-fuIKbQAWQl22Ba5d1quwEETQYjqnpKVyZIWAhbnnHgnDd3a+z4YgEfkI5SZ2xMELnLAXo/Flk2uXgysZNf0uaA==}
+
   zone.js@0.15.1:
     resolution: {integrity: sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==}
 
@@ -6245,6 +6260,10 @@ snapshots:
       '@types/node': 22.15.24
 
   '@types/cors@2.8.18':
+    dependencies:
+      '@types/node': 22.15.24
+
+  '@types/cors@2.8.19':
     dependencies:
       '@types/node': 22.15.24
 
@@ -9225,5 +9244,7 @@ snapshots:
   yocto-queue@1.2.1: {}
 
   yoctocolors-cjs@2.1.2: {}
+
+  zod@3.25.73: {}
 
   zone.js@0.15.1: {}

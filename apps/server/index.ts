@@ -7,15 +7,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
  
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+const genAI = new GoogleGenAI({ apiKey: process.env['GEMINI_API_KEY'] as string });
 
 const appRouter = router({
   askChat: publicProcedure
     .input(z.string())
-    .query(async ({ input }) => {
+    .query(async function ({ input }) {
       const result = await genAI.models.generateContent(
       { 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         contents: input,
         config: { 
           systemInstruction: [
@@ -27,7 +27,7 @@ const appRouter = router({
           ] 
         } 
       });
-      return result.text;
+      return result.text?.replace('```openscad', '')?.replace('```', '') || '';
     })
 });
 

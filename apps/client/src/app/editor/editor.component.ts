@@ -38,15 +38,18 @@ export class EditorComponent implements OnInit, AfterViewInit {
     });
 
     this.worker.postMessage({ scadCode: this.editor.getValue() });
-    this.editor.onDidChangeModelContent(() => {
-      const code = this.editor.getValue();
-      this.worker.postMessage({ scadCode: code });
-    });
   }
 
   ngAfterViewInit(): void {
     // Ensure the editor is properly sized after view initialization
     this.editor.layout();
+  }
+
+  onCodeReceived(code: string | undefined) {
+    if (code) {
+      this.editor.setValue(code);
+      this.worker.postMessage({ scadCode: code });
+    }
   }
 
   saveStl() {

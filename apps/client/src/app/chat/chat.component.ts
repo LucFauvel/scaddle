@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TrpcService } from '../services/trpc.service';
 
@@ -11,6 +11,7 @@ import { TrpcService } from '../services/trpc.service';
 })
 export class ChatComponent {
   @ViewChild('output') output!: ElementRef;
+  @Output() codeReceived: EventEmitter<string | undefined> = new EventEmitter<string | undefined>();
   inputText: string = '';
 
   constructor(private trpc: TrpcService) {}
@@ -21,15 +22,20 @@ export class ChatComponent {
       return;
     }
 
+    const textToSend = this.inputText.trim();
     this.inputText = '';
+    const outputElement = this.output.nativeElement;
+    outputElement.innerHTML = 'Generating code...';
 
-    this.trpc.ask(this.inputText).then((response) => {
+    this.trpc.ask(textToSend).then((response) => {
       const outputElement = this.output.nativeElement;
-      outputElement.innerHTML += `<p><strong>You:</strong> ${this.inputText}</p>`;
-      outputElement.innerHTML += `<p><strong>Bot:</strong> ${response}</p>`;
+      outputElement.innerHTML = 'Code generated';
       this.inputText = '';
       outputElement.scrollTop = outputElement.scrollHeight; // Scroll to the bottom
+      this.codeReceived.emit(response);
     }).catch((error) => {
+      const outputElement = this.output.nativeElement;
+      outputElement.innerHTML = `Error generating code: ${error.message}`;
       console.error('Error:', error);
     });
   }

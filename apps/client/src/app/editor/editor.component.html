@@ -3,7 +3,7 @@
     <div class="h-14 grow-7">
       <div class="h-full" #editorContainer></div>
     </div>
-    <app-chat class="h-14 grow-3"></app-chat>
+    <app-chat (codeReceived)="onCodeReceived($event)" class="h-14 grow-3"></app-chat>
     <div class="flex flex-none justify-between items-center p-2 bg-neutral-800">
       <button type="button" class="bg-gray-200 p-2 rounded bg-gradient-to-b" (click)="saveStl()">Save STL</button>
       <button type="button" class="bg-gray-200 p-2 rounded bg-gradient-to-b" (click)="render()">Render</button>

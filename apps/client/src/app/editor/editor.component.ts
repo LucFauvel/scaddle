@@ -2,16 +2,18 @@ import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild } from 
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
 import { ChatComponent } from "../chat/chat.component";
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-editor',
-  imports: [RendererComponent, ChatComponent],
+  imports: [RendererComponent, ChatComponent, CommonModule],
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
   currentStl = signal<Uint8Array | null>(null);
+  isEditorVisible = false;
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
 
   constructor() {
@@ -43,6 +45,10 @@ export class EditorComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     // Ensure the editor is properly sized after view initialization
     this.editor.layout();
+  }
+
+  toggleEditor() {
+    this.isEditorVisible = !this.isEditorVisible;
   }
 
   onCodeReceived(code: string | undefined) {

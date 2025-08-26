@@ -7,6 +7,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
   selector: 'app-renderer',
   imports: [],
   template: '',
+  standalone: true
 })
 export class RendererComponent implements AfterViewInit {
   scene!: THREE.Scene;
@@ -21,7 +22,7 @@ export class RendererComponent implements AfterViewInit {
       const stlBytes = this.stlBytes();
       console.log('STL Bytes:', stlBytes);
       if (stlBytes) {
-        const blob = new Blob([stlBytes], { type: 'application/sla' });
+        const blob = new Blob([stlBytes.slice().buffer], { type: 'application/sla' });
         const url = URL.createObjectURL(blob);
         const loader = new STLLoader();
         loader.load(url, (geometry) => {

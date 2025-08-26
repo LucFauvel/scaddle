@@ -61,7 +61,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
   saveStl() {
     const bytes = this.currentStl();
     if (bytes) {
-      const blob = new Blob([bytes], { type: 'application/sla' });
+      const blob = new Blob([bytes.slice().buffer], { type: 'application/sla' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

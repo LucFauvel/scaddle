@@ -1,3 +1,0 @@
-[submodule "apps/client/src/openscad-wasm"]
-	path = apps/client/src/openscad-wasm
-	url = git@github.com:openscad/openscad-wasm.git

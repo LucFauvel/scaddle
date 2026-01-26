@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import OpenSCAD from "../../openscad-wasm/build/openscad.wasm.js";
+import OpenSCAD from "../../openscad-wasm/openscad.js";
 
 
 async function generateStlFromScad(scadCode: string): Promise<Uint8Array> {

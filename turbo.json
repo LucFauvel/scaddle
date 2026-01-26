@@ -10,6 +10,7 @@
       ],
       "outputs": [
         "apps/client/dist/**",
+        "apps/client/src/openscad-wasm/build/**",
         "apps/server/dist/**"
       ]
     },

@@ -27,7 +27,7 @@
               },
               {
                 "glob": "**/*",
-                "input": "src/openscad-wasm/build"
+                "input": "src/openscad-wasm"
               }
             ],
             "styles": [

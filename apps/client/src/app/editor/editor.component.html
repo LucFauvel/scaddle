@@ -1,6 +1,22 @@
 <div class="h-full w-full flex flex-col">
   <!-- Top section with renderer and editor -->
   <div class="flex-grow relative">
+    <!-- Auth button in top right -->
+    <div class="absolute top-4 right-4 z-20">
+      @if (isAuthenticated()) {
+        <div class="flex items-center gap-2">
+          <span class="text-white text-sm">{{ user()?.name || user()?.email }}</span>
+          <button (click)="signOut()" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm">
+            Sign Out
+          </button>
+        </div>
+      } @else {
+        <button (click)="openAuthModal('login')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-sm">
+          Sign In
+        </button>
+      }
+    </div>
+
     <button (click)="toggleEditor()" class="absolute top-7 z-20 bg-gray-800 ml-2 text-white p-2 rounded-full transform -translate-y-1/2 transition-all duration-300 ease-in-out" [ngClass]="{'left-1/2': isEditorVisible}">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path *ngIf="!isEditorVisible" stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.75L3 12l3.75 4.25M17.25 7.75L21 12l-3.75 4.25M13.5 1.5L10.5 22.5" />
@@ -26,3 +42,73 @@
       </div>
     </div>
 </div>
+
+<!-- Auth Modal -->
+@if (showAuthModal()) {
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeAuthModal()">
+    <div class="bg-neutral-800 rounded-lg p-6 w-full max-w-md" (click)="$event.stopPropagation()">
+      <h2 class="text-xl font-semibold text-white mb-4">
+        {{ authMode() === 'login' ? 'Sign In' : 'Create Account' }}
+      </h2>
+
+      <form (ngSubmit)="submitAuth()" class="space-y-4">
+        @if (authMode() === 'signup') {
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Name</label>
+            <input
+              type="text"
+              [(ngModel)]="authName"
+              name="name"
+              class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
+              required
+            />
+          </div>
+        }
+
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Email</label>
+          <input
+            type="email"
+            [(ngModel)]="authEmail"
+            name="email"
+            class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Password</label>
+          <input
+            type="password"
+            [(ngModel)]="authPassword"
+            name="password"
+            class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
+            required
+          />
+        </div>
+
+        @if (authError()) {
+          <div class="text-red-400 text-sm">{{ authError() }}</div>
+        }
+
+        <button
+          type="submit"
+          [disabled]="authLoading()"
+          class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white py-2 rounded font-medium"
+        >
+          {{ authLoading() ? 'Loading...' : (authMode() === 'login' ? 'Sign In' : 'Create Account') }}
+        </button>
+      </form>
+
+      <div class="mt-4 text-center text-sm text-gray-400">
+        @if (authMode() === 'login') {
+          Don't have an account?
+          <button (click)="openAuthModal('signup')" class="text-blue-400 hover:underline">Sign up</button>
+        } @else {
+          Already have an account?
+          <button (click)="openAuthModal('login')" class="text-blue-400 hover:underline">Sign in</button>
+        }
+      </div>
+    </div>
+  </div>
+}

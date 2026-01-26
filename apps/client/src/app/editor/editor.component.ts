@@ -1,20 +1,35 @@
-import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild, inject } from '@angular/core';
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
 import { ChatComponent } from "../chat/chat.component";
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-editor',
-  imports: [RendererComponent, ChatComponent, CommonModule],
+  imports: [RendererComponent, ChatComponent, CommonModule, FormsModule],
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {
+  private authService = inject(AuthService);
+
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
   currentStl = signal<Uint8Array | null>(null);
   isEditorVisible = false;
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
+
+  // Auth state
+  isAuthenticated = this.authService.isAuthenticated;
+  user = this.authService.user;
+  showAuthModal = signal(false);
+  authMode = signal<'login' | 'signup'>('login');
+  authEmail = '';
+  authPassword = '';
+  authName = '';
+  authError = signal<string | null>(null);
+  authLoading = signal(false);
 
   constructor() {
     this.worker.onmessage = ({ data }) => {
@@ -78,6 +93,43 @@ export class EditorComponent implements OnInit, AfterViewInit {
   render() {
     const code = this.editor.getValue();
     this.worker.postMessage({ scadCode: code });
+  }
+
+  // Auth methods
+  openAuthModal(mode: 'login' | 'signup' = 'login') {
+    this.authMode.set(mode);
+    this.authError.set(null);
+    this.authEmail = '';
+    this.authPassword = '';
+    this.authName = '';
+    this.showAuthModal.set(true);
+  }
+
+  closeAuthModal() {
+    this.showAuthModal.set(false);
+  }
+
+  async submitAuth() {
+    this.authError.set(null);
+    this.authLoading.set(true);
+
+    try {
+      if (this.authMode() === 'signup') {
+        await this.authService.signUp(this.authEmail, this.authPassword, this.authName);
+      } else {
+        await this.authService.signIn(this.authEmail, this.authPassword);
+      }
+      this.closeAuthModal();
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      this.authError.set(error.message || 'Authentication failed');
+    } finally {
+      this.authLoading.set(false);
+    }
+  }
+
+  async signOut() {
+    await this.authService.signOut();
   }
 }
 

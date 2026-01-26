@@ -1,59 +1,138 @@
 # Scaddle
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.14.
+An AI-powered OpenSCAD IDE with real-time 3D visualization. Write OpenSCAD code manually or generate it from natural language descriptions using Google's Gemini AI.
 
-## Development server
+## Features
 
-To start a local development server, run:
+- **Code Editor**: Monaco Editor with OpenSCAD syntax highlighting and autocomplete
+- **AI Code Generation**: Describe what you want in natural language, get OpenSCAD code via Gemini 2.5 Flash
+- **3D Visualization**: Real-time rendering with Three.js and interactive orbit controls
+- **STL Export**: Generate and download STL files for 3D printing
+- **Browser-Based Compilation**: OpenSCAD runs entirely in-browser via WebAssembly
 
-```bash
-ng serve
+## Tech Stack
+
+**Frontend (Angular 20)**
+- Angular 20.2.1 with standalone components
+- Tailwind CSS 4.1.12
+- Monaco Editor 0.52.2
+- Three.js 0.179.1
+- tRPC Client 11.5.0
+- OpenSCAD WASM (prebuilt)
+
+**Backend (Bun)**
+- tRPC Server 11.5.0
+- Google GenAI (Gemini 2.5 Flash)
+- Better Auth 1.3.7
+- PostgreSQL
+
+**Build Tools**
+- pnpm 10.12.1 (workspaces)
+- Turbo 2.5.6 (monorepo orchestration)
+
+## Project Structure
+
+```
+scaddle/
+├── apps/
+│   ├── client/                 # Angular frontend
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── editor/     # Monaco code editor component
+│   │   │   │   ├── renderer/   # Three.js 3D viewer component
+│   │   │   │   ├── chat/       # AI chat interface component
+│   │   │   │   ├── services/   # tRPC client service
+│   │   │   │   └── workers/    # OpenSCAD WASM web worker
+│   │   │   └── openscad-wasm/  # Prebuilt WASM files
+│   │   └── package.json
+│   └── server/                 # Bun backend
+│       ├── index.ts            # Server entry point & tRPC router
+│       ├── trpc.ts             # tRPC configuration
+│       ├── auth.ts             # Better Auth setup
+│       └── package.json
+├── turbo.json
+├── pnpm-workspace.yaml
+└── package.json
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Prerequisites
 
-## Code scaffolding
+- [Node.js](https://nodejs.org/) 18+
+- [Bun](https://bun.sh/) (required for server)
+- [pnpm](https://pnpm.io/) 10.12.1+
+- [PostgreSQL](https://www.postgresql.org/) database
+- [Google Gemini API key](https://ai.google.dev/)
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Installation
 
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd scaddle
+   ```
+
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+3. Configure environment variables. Create `apps/server/.env`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key
+   DATABASE_URL=postgresql://user:password@localhost:5432/scaddle
+   BETTER_AUTH_SECRET=your_random_secret_key_min_32_chars
+   BETTER_AUTH_URL=http://localhost:3000
+   ```
+
+4. Run database migrations for authentication:
+   ```bash
+   cd apps/server && npx @better-auth/cli migrate
+   ```
+
+## Development
+
+Start both client and server in development mode:
 ```bash
-ng generate component component-name
+pnpm dev
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- Client: http://localhost:4200
+- Server: http://localhost:3000
 
+Or run individually:
 ```bash
-ng generate --help
+# Client only
+cd apps/client && pnpm dev
+
+# Server only
+cd apps/server && pnpm dev
 ```
 
-## Building
-
-To build the project run:
+## Production Build
 
 ```bash
-ng build
+pnpm build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Build outputs:
+- Client: `apps/client/dist/`
+- Server: `apps/server/dist/`
 
-## Running unit tests
+## Usage
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+1. **Write Code**: Use the Monaco editor to write OpenSCAD code directly
+2. **AI Generation**: Type a description in the chat (e.g., "Create a gear with 20 teeth") and the AI will generate OpenSCAD code
+3. **Visualize**: Click "Render" to compile and view the 3D model
+4. **Export**: Download the generated STL file for 3D printing
 
-```bash
-ng test
-```
+## Scripts
 
-## Running end-to-end tests
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development servers |
+| `pnpm build` | Build for production |
+| `pnpm test` | Run tests |
 
-For end-to-end (e2e) testing, run:
+## License
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+GPL-3.0

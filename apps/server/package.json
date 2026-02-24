@@ -6,7 +6,9 @@
   "scripts": {
     "start": "bun index.ts",
     "build": "bun build index.ts",
-    "dev": "bun --watch index.ts"
+    "dev": "bun --watch index.ts",
+    "db:generate": "bunx --bun @better-auth/cli generate",
+    "db:migrate": "bunx --bun @better-auth/cli migrate"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@better-auth/cli": "^1.3.7",
+    "@types/bun": "^1.3.7",
     "@types/cors": "^2.8.19",
     "@types/pg": "^8.15.5"
   }

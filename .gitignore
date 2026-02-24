@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .turbo
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

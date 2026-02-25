@@ -1,22 +1,20 @@
 import { initTRPC, TRPCError } from '@trpc/server';
-import { auth } from './auth'
 import { ZodError } from 'zod';
 import { z } from 'zod';
 
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const authSession = await auth.api.getSession({
-    headers: opts.headers
-  })
-
-  const source = opts.headers.get('x-trpc-source') ?? 'unknown'
-  console.log('>>> tRPC Request from', source, 'by', authSession?.user.email)
-
-  return {
-    user: authSession?.user
-  }
+export type TRPCContext = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    image: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | undefined;
 }
-type Context = Awaited<ReturnType<typeof createTRPCContext>>
-const t = initTRPC.context<Context>().create({
+
+const t = initTRPC.context<TRPCContext>().create({
   errorFormatter: ({ shape, error }) => ({
     ...shape,
     data: {

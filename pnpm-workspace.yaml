@@ -2,4 +2,12 @@ packages:
   - apps/*
 
 ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
   - better-sqlite3
+  - esbuild
+  - lmdb
+  - msgpackr-extract
+  - prisma

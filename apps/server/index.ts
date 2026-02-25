@@ -4,10 +4,12 @@ import { createAppRouter } from './router';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import { auth } from './auth';
+import { auth, runMigrations } from './auth';
 import { toNodeHandler } from 'better-auth/node';
 
 dotenv.config();
+
+await runMigrations();
 
 const authHandler = toNodeHandler(auth);
 

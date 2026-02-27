@@ -1,112 +1,230 @@
-<div class="h-full w-full flex flex-col">
-  <!-- Top section with renderer and editor -->
-  <div class="flex-grow relative">
-    <!-- Auth button in top right -->
-    <div class="absolute top-4 right-4 z-20">
-      @if (isAuthenticated()) {
-        <div class="flex items-center gap-2">
-          <span class="text-white text-sm">{{ user()?.name || user()?.email }}</span>
-          <button (click)="signOut()" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm">
-            Sign Out
-          </button>
-        </div>
-      } @else {
-        <button (click)="openAuthModal('login')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-sm">
-          Sign In
-        </button>
-      }
-    </div>
+<div class="h-full w-full flex flex-col bg-zinc-950 overflow-hidden">
 
-    <button (click)="toggleEditor()" class="absolute top-7 z-20 bg-gray-800 ml-2 text-white p-2 rounded-full transform -translate-y-1/2 transition-all duration-300 ease-in-out" [ngClass]="{'left-1/2': isEditorVisible}">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path *ngIf="!isEditorVisible" stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.75L3 12l3.75 4.25M17.25 7.75L21 12l-3.75 4.25M13.5 1.5L10.5 22.5" />
-        <path *ngIf="isEditorVisible" stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+  <!-- ═══════════════════════════════════════════════════════════
+       TOP TOOLBAR
+       Height: 40px — contains: app identity, tools, auth
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="h-10 flex items-center shrink-0 bg-zinc-900 border-b border-zinc-800/60 px-3 gap-2">
+
+    <!-- App identity -->
+    <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500 select-none pr-3 border-r border-zinc-800">
+      SCADDLE
+    </span>
+
+    <!-- Editor panel toggle -->
+    <button
+      (click)="toggleEditor()"
+      class="h-7 px-2.5 flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+      [ngClass]="isEditorVisible
+        ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400 hover:bg-cyan-950/80'
+        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:border-zinc-600 hover:text-zinc-200'"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.75L3 12l3.75 4.25M17.25 7.75L21 12l-3.75 4.25M13.5 1.5L10.5 22.5" />
       </svg>
+      Editor
     </button>
 
-    <div [ngClass]="{'w-1/2': isEditorVisible, 'w-0': !isEditorVisible}" class="h-full absolute top-0 left-0 z-10 transition-all duration-300 ease-in-out overflow-hidden">
-      <div class="h-full" #editorContainer></div>
+    <!-- Divider -->
+    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
 
+    <!-- Render — primary action -->
+    <button
+      type="button"
+      (click)="render()"
+      class="h-7 px-3 flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 rounded border border-cyan-500 hover:border-cyan-400 text-zinc-950 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-400 focus-visible:outline-none"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+      </svg>
+      Render
+    </button>
+
+    <!-- Export STL — secondary action -->
+    <button
+      type="button"
+      (click)="saveStl()"
+      class="h-7 px-3 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded border border-zinc-700 hover:border-zinc-600 text-zinc-200 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      </svg>
+      Export STL
+    </button>
+
+    <!-- Spacer pushes auth to the right -->
+    <div class="flex-1"></div>
+
+    <!-- Auth controls -->
+    @if (isAuthenticated()) {
+      <div class="flex items-center gap-2.5">
+        <span class="text-xs font-mono text-zinc-400">{{ user()?.name || user()?.email }}</span>
+        <button
+          (click)="signOut()"
+          class="h-7 px-2.5 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-zinc-200 text-xs transition-colors duration-100"
+        >
+          Sign Out
+        </button>
+      </div>
+    } @else {
+      <button
+        (click)="openAuthModal('login')"
+        class="h-7 px-3 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors duration-100"
+      >
+        Sign In
+      </button>
+    }
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN WORKSPACE — editor overlay + 3D viewport
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="flex-1 relative overflow-hidden">
+
+    <!-- Monaco editor panel (slides in from left) -->
+    <div
+      [ngClass]="{'w-1/2': isEditorVisible, 'w-0': !isEditorVisible}"
+      class="h-full absolute top-0 left-0 z-10 transition-all duration-200 ease-in-out overflow-hidden border-r border-zinc-800/60"
+    >
+      <div class="h-full" #editorContainer></div>
     </div>
 
+    <!-- 3D Viewport — always behind the editor panel -->
     <app-renderer [stlBytes]="currentStl()" class="absolute h-full w-full"></app-renderer>
   </div>
 
-    <div class="flex flex-row h-1/4 bg-neutral-900">
-      <div class="flex-grow">
-        <app-chat (codeReceived)="onCodeReceived($event)" class="h-full"></app-chat>
+  <!-- ═══════════════════════════════════════════════════════════
+       BOTTOM PANEL — AI console + status
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="h-[28%] flex shrink-0 border-t border-zinc-800/60">
+
+    <!-- Console / chat -->
+    <div class="flex-1 min-w-0 bg-zinc-900">
+      <app-chat (codeReceived)="onCodeReceived($event)" class="h-full block"></app-chat>
+    </div>
+
+    <!-- Status sidebar -->
+    <div class="w-px bg-zinc-800/60 shrink-0"></div>
+    <div class="w-40 shrink-0 flex flex-col bg-zinc-900 p-3 gap-3">
+      <div>
+        <div class="text-[10px] uppercase tracking-widest font-medium text-zinc-600 mb-2">Status</div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0"></div>
+          <span class="text-[11px] font-mono text-zinc-400">Ready</span>
+        </div>
       </div>
-      <div class="flex flex-none justify-between items-center p-2 bg-neutral-800">
-        <button type="button" class="bg-gray-200 p-2 rounded bg-gradient-to-b" (click)="saveStl()">Save STL</button>
-        <button type="button" class="bg-gray-200 p-2 rounded bg-gradient-to-b" (click)="render()">Render</button>
+      <div class="border-t border-zinc-800/60 pt-3">
+        <div class="text-[10px] uppercase tracking-widest font-medium text-zinc-600 mb-2">Viewport</div>
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-zinc-600">X</span>
+            <span class="text-[11px] font-mono tabular-nums text-zinc-400">0.000</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-zinc-600">Y</span>
+            <span class="text-[11px] font-mono tabular-nums text-zinc-400">0.000</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-zinc-600">Z</span>
+            <span class="text-[11px] font-mono tabular-nums text-zinc-400">0.000</span>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+
 </div>
 
-<!-- Auth Modal -->
+<!-- ═══════════════════════════════════════════════════════════
+     AUTH MODAL
+     ═══════════════════════════════════════════════════════════ -->
 @if (showAuthModal()) {
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeAuthModal()">
-    <div class="bg-neutral-800 rounded-lg p-6 w-full max-w-md" (click)="$event.stopPropagation()">
-      <h2 class="text-xl font-semibold text-white mb-4">
-        {{ authMode() === 'login' ? 'Sign In' : 'Create Account' }}
-      </h2>
+  <div
+    class="fixed inset-0 bg-black/75 flex items-center justify-center z-50"
+    (click)="closeAuthModal()"
+  >
+    <div
+      class="bg-zinc-900 border border-zinc-700 rounded w-full max-w-sm"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60">
+        <h2 class="text-sm font-semibold text-zinc-100">
+          {{ authMode() === 'login' ? 'Sign In' : 'Create Account' }}
+        </h2>
+        <button
+          (click)="closeAuthModal()"
+          class="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-      <form (ngSubmit)="submitAuth()" class="space-y-4">
+      <!-- Modal body -->
+      <form (ngSubmit)="submitAuth()" class="px-5 py-4 space-y-3">
         @if (authMode() === 'signup') {
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">Name</label>
+          <div class="space-y-1.5">
+            <label class="block text-[10px] uppercase tracking-widest font-medium text-zinc-500">Name</label>
             <input
               type="text"
               [(ngModel)]="authName"
               name="name"
-              class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
               required
+              class="h-8 w-full px-2.5 bg-zinc-950 text-zinc-100 text-xs font-mono rounded border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 outline-none transition-colors duration-75 placeholder:text-zinc-600"
             />
           </div>
         }
 
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Email</label>
+        <div class="space-y-1.5">
+          <label class="block text-[10px] uppercase tracking-widest font-medium text-zinc-500">Email</label>
           <input
             type="email"
             [(ngModel)]="authEmail"
             name="email"
-            class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
             required
+            class="h-8 w-full px-2.5 bg-zinc-950 text-zinc-100 text-xs font-mono rounded border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 outline-none transition-colors duration-75 placeholder:text-zinc-600"
           />
         </div>
 
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Password</label>
+        <div class="space-y-1.5">
+          <label class="block text-[10px] uppercase tracking-widest font-medium text-zinc-500">Password</label>
           <input
             type="password"
             [(ngModel)]="authPassword"
             name="password"
-            class="w-full px-3 py-2 bg-neutral-700 text-white rounded border border-neutral-600 focus:border-blue-500 focus:outline-none"
             required
+            class="h-8 w-full px-2.5 bg-zinc-950 text-zinc-100 text-xs font-mono rounded border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 outline-none transition-colors duration-75 placeholder:text-zinc-600"
           />
         </div>
 
         @if (authError()) {
-          <div class="text-red-400 text-sm">{{ authError() }}</div>
+          <div class="flex items-center gap-1.5 py-1.5 px-2.5 rounded bg-red-950/40 border border-red-900/40">
+            <svg class="w-3.5 h-3.5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            <span class="text-xs font-mono text-red-400">{{ authError() }}</span>
+          </div>
         }
 
         <button
           type="submit"
           [disabled]="authLoading()"
-          class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white py-2 rounded font-medium"
+          class="mt-1 h-8 w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-950 text-xs font-medium rounded border border-cyan-500 hover:border-cyan-400 transition-colors duration-100"
         >
-          {{ authLoading() ? 'Loading...' : (authMode() === 'login' ? 'Sign In' : 'Create Account') }}
+          {{ authLoading() ? 'Authenticating...' : (authMode() === 'login' ? 'Sign In' : 'Create Account') }}
         </button>
       </form>
 
-      <div class="mt-4 text-center text-sm text-gray-400">
+      <!-- Modal footer -->
+      <div class="px-5 pb-4 text-center text-xs text-zinc-500">
         @if (authMode() === 'login') {
-          Don't have an account?
-          <button (click)="openAuthModal('signup')" class="text-blue-400 hover:underline">Sign up</button>
+          No account?
+          <button (click)="openAuthModal('signup')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign up</button>
         } @else {
-          Already have an account?
-          <button (click)="openAuthModal('login')" class="text-blue-400 hover:underline">Sign in</button>
+          Have an account?
+          <button (click)="openAuthModal('login')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign in</button>
         }
       </div>
     </div>

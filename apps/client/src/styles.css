@@ -1,5 +1,42 @@
-html, body {
-  @apply h-full;
+@import "tailwindcss";
+
+@theme {
+  /* ===== Font Families ===== */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
 }
 
-@import "tailwindcss";
+@layer base {
+  html, body {
+    @apply h-full bg-zinc-950 text-zinc-200 antialiased;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  /* Monospace elements always use tabular numerals */
+  .font-mono, code, pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Precision scrollbars — present but unobtrusive */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700 rounded-sm;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
+  }
+
+  /* Selection tinted with accent */
+  ::selection {
+    background: rgb(8 51 68 / 0.6); /* cyan-950/60 */
+  }
+}

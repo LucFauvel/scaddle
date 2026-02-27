@@ -26,7 +26,7 @@ export class RendererComponent implements AfterViewInit {
         const url = URL.createObjectURL(blob);
         const loader = new STLLoader();
         loader.load(url, (geometry) => {
-          const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+          const material = new THREE.MeshStandardMaterial({ color: 0x8888aa, metalness: 0.3, roughness: 0.6 });
           const mesh = new THREE.Mesh(geometry, material);
           mesh.scale.set(0.1, 0.1, 0.1);
           if (this.currentMesh) {
@@ -78,15 +78,17 @@ export class RendererComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x09090b); // zinc-950
     this.camera = new THREE.PerspectiveCamera(75, this.elementRef.nativeElement.clientWidth / this.elementRef.nativeElement.clientHeight, 0.1, 1000);
-    this.renderer = new THREE.WebGLRenderer();
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.elementRef.nativeElement.appendChild(this.renderer.domElement);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
     const size = 10;
     const divisions = 10;
 
-    const gridHelper = new THREE.GridHelper(size, divisions);
+    // Muted grid: center line in zinc-700, grid lines in zinc-800
+    const gridHelper = new THREE.GridHelper(size, divisions, 0x3f3f46, 0x27272a);
     this.scene.add(gridHelper);
 
     // Add labels to the grid edges

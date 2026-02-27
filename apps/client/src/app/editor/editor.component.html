@@ -90,7 +90,11 @@
     </div>
 
     <!-- 3D Viewport — always behind the editor panel -->
-    <app-renderer [stlBytes]="currentStl()" class="absolute h-full w-full"></app-renderer>
+    <app-renderer
+      [stlBytes]="currentStl()"
+      (transformApplied)="onTransformApplied($event)"
+      class="absolute h-full w-full"
+    ></app-renderer>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════

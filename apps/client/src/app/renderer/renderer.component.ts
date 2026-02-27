@@ -8,6 +8,7 @@ import {
   ViewChild,
   effect,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
@@ -15,6 +16,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { MeshTransform } from '../models/mesh-transform';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,10 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
   // ── Inputs ────────────────────────────────────────────────────────────────
   stlBytes = input<Uint8Array | null>();
+
+  // ── Outputs ───────────────────────────────────────────────────────────────
+  /** Fires when the user finishes a transform drag. Values are in OpenSCAD units/degrees. */
+  readonly transformApplied = output<MeshTransform>();
 
   // ── Template-readable state ───────────────────────────────────────────────
   activeTool = signal<ActiveTool>('none');
@@ -267,6 +273,36 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.tfControls.addEventListener('dragging-changed', (event: any) => {
       this.orbitControls.enabled = !event.value;
+    });
+
+    // Emit the mesh's new transform (in OpenSCAD units) when the drag ends.
+    // Must re-enter Angular's zone because the Three.js event loop runs outside it.
+    this.tfControls.addEventListener('mouseUp', () => {
+      if (!this.currentMesh) return;
+
+      const m             = this.currentMesh;
+      const DISPLAY_SCALE = 0.1; // 1 OpenSCAD unit = 0.1 Three.js units
+      const RAD_TO_DEG    = 180 / Math.PI;
+
+      const transform: MeshTransform = {
+        translate: [
+          m.position.x / DISPLAY_SCALE,
+          m.position.y / DISPLAY_SCALE,
+          m.position.z / DISPLAY_SCALE,
+        ],
+        rotate: [
+          m.rotation.x * RAD_TO_DEG,
+          m.rotation.y * RAD_TO_DEG,
+          m.rotation.z * RAD_TO_DEG,
+        ],
+        scale: [
+          m.scale.x / DISPLAY_SCALE,
+          m.scale.y / DISPLAY_SCALE,
+          m.scale.z / DISPLAY_SCALE,
+        ],
+      };
+
+      this.ngZone.run(() => this.transformApplied.emit(transform));
     });
 
     this.scene.add(this.tfControls.getHelper());

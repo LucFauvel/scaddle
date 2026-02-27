@@ -5,6 +5,8 @@ import { ChatComponent } from "../chat/chat.component";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
+import { MeshTransform } from '../models/mesh-transform';
+import { applyTransformToScad } from '../utils/scad-transform';
 
 @Component({
   selector: 'app-editor',
@@ -64,6 +66,15 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   toggleEditor() {
     this.isEditorVisible = !this.isEditorVisible;
+  }
+
+  onTransformApplied(transform: MeshTransform): void {
+    const current = this.editor.getValue();
+    const updated = applyTransformToScad(current, transform);
+    if (updated !== current) {
+      this.editor.setValue(updated);
+      this.worker.postMessage({ scadCode: updated });
+    }
   }
 
   onCodeReceived(code: string | undefined) {

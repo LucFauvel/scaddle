@@ -50,7 +50,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     monaco.languages.setLanguageConfiguration('openscad', openscadLanguageConfig);
     monaco.languages.registerCompletionItemProvider('openscad', openscadCompletionProvider);
     this.editor = monaco.editor.create(this._editorContainer.nativeElement, {
-      value: '// OpenSCAD code example\n\nmodule cubeWithHole() {\n  difference() {\n    cube([10, 10, 10]);\n    translate([5, 5, 0]) cylinder(r=3, h=10);\n  }\n}\ncubeWithHole();',
+      value: 'linear_extrude(height) { text("Welcome to Scaddle", size = letter_size, font = font, halign = "center", valign = "center", $fn = 64);}',
       automaticLayout: true,
       language: 'openscad',
       theme: 'vs-dark',

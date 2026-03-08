@@ -50,7 +50,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     monaco.languages.setLanguageConfiguration('openscad', openscadLanguageConfig);
     monaco.languages.registerCompletionItemProvider('openscad', openscadCompletionProvider);
     this.editor = monaco.editor.create(this._editorContainer.nativeElement, {
-      value: 'linear_extrude(height) { text("Welcome to Scaddle", size = letter_size, font = font, halign = "center", valign = "center", $fn = 64);}',
+      value: 'font = "Liberation Sans:style=Bold";\nsize = 12;\nheight = 4;\n\nlinear_extrude(height = height) {\n  text("Welcome to Scaddle", size = size, font = font, halign = "center", valign = "center", $fn = 4);\n}',
       automaticLayout: true,
       language: 'openscad',
       theme: 'vs-dark',

@@ -1,23 +1,23 @@
 <div class="flex flex-col h-full font-mono">
 
   <!-- Panel label — HMI-style section header -->
-  <div class="flex items-center h-8 px-3 border-b border-zinc-800/60 shrink-0">
-    <span class="text-[10px] font-medium uppercase tracking-widest text-zinc-600">AI Console</span>
+  <div class="flex items-center h-9 px-3 border-b border-zinc-800/60 shrink-0">
+    <span class="text-xs font-medium uppercase tracking-widest text-zinc-600">AI Console</span>
   </div>
 
   <!-- Output area — scrollable log -->
   <div class="flex-1 overflow-y-auto p-3 min-h-0">
-    <div #output class="text-xs text-zinc-400 leading-5 whitespace-pre-wrap">
+    <div #output class="text-sm text-zinc-400 leading-5 whitespace-pre-wrap">
       Create whatever is in your mind.
     </div>
   </div>
 
   <!-- Command input row -->
-  <div class="flex items-center gap-2 h-9 px-3 border-t border-zinc-800/60 bg-zinc-950 shrink-0">
-    <span class="text-cyan-500 text-xs select-none shrink-0">&gt;</span>
+  <div class="flex items-center gap-2 h-10 px-3 border-t border-zinc-800/60 bg-zinc-950 shrink-0">
+    <span class="text-cyan-500 text-sm select-none shrink-0">&gt;</span>
     <input
       [(ngModel)]="inputText"
-      class="flex-1 bg-transparent text-zinc-100 text-xs placeholder:text-zinc-600 outline-none"
+      class="flex-1 bg-transparent text-zinc-100 text-sm placeholder:text-zinc-600 outline-none"
       type="text"
       placeholder="Describe changes to generate..."
       (keydown.enter)="sendMessage($event)"

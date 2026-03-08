@@ -133,6 +133,10 @@ Build outputs:
 | `pnpm build` | Build for production |
 | `pnpm test` | Run tests |
 
+## Acknowledgements
+
+A big thank you to the [OpenSCAD](https://openscad.org/) team and the contributors behind the [openscad/openscad-wasm](https://github.com/openscad/openscad-wasm) project. Without their WebAssembly port of OpenSCAD, in-browser compilation would not be possible.
+
 ## License
 
 GPL-3.0

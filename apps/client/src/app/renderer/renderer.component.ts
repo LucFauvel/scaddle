@@ -264,6 +264,12 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
       }
 
       this.frameObject();
+
+      // Move the grid to sit just below the loaded model's bounding box bottom
+      if (this.gridMesh) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        this.gridMesh.position.y = box.min.y - 0.001;
+      }
     });
   }
 

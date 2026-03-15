@@ -11,4 +11,5 @@ export interface MeshTransform {
   translate: [number, number, number];
   rotate:    [number, number, number]; // degrees, Euler XYZ
   scale:     [number, number, number]; // ratio (1.0 = no change)
+  tool:      'translate' | 'rotate' | 'scale';
 }

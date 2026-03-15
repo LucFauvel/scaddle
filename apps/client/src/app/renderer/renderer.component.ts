@@ -396,6 +396,7 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
           m.scale.y / DISPLAY_SCALE,
           m.scale.z / DISPLAY_SCALE,
         ],
+        tool: this.activeTool() as 'translate' | 'rotate' | 'scale',
       };
 
       this.ngZone.run(() => this.transformApplied.emit(transform));

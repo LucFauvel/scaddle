@@ -5,9 +5,19 @@ import { ChatComponent } from "../chat/chat.component";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
+import { HistoryService, HistoryEntry, HistorySource } from '../services/history.service';
 import { MeshTransform } from '../models/mesh-transform';
 import { applyTransformToScad } from '../utils/scad-transform';
 import { offToStlBytes } from '../utils/off-to-stl';
+
+const DEFAULT_CODE =
+`font = "Liberation Sans:style=Bold";
+size = 12;
+height = 4;
+
+linear_extrude(height = height) {
+  text("Welcome to Scaddle", size = size, font = font, halign = "center", valign = "center", $fn = 4);
+}`;
 
 @Component({
   selector: 'app-editor',
@@ -15,7 +25,8 @@ import { offToStlBytes } from '../utils/off-to-stl';
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {
-  private authService = inject(AuthService);
+  private authService   = inject(AuthService);
+  private historyService = inject(HistoryService);
 
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
@@ -23,6 +34,16 @@ export class EditorComponent implements OnInit, AfterViewInit {
   currentStl = signal<Uint8Array | null>(null);
   isEditorVisible = false;
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
+
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── History browsing ──────────────────────────────────────────────────────
+  historyEntries       = signal<HistoryEntry[]>([]);
+  historyIndex         = signal(-1);      // -1 = none selected
+  showHistoryDropdown  = signal(false);
+  private _suppressSave          = false;
+  private _contentBeforeHistory  = '';
+  private _nextSaveSource: HistorySource = 'edit';
 
   readonly vpX = signal('0.000');
   readonly vpY = signal('0.000');
@@ -62,14 +83,113 @@ export class EditorComponent implements OnInit, AfterViewInit {
     monaco.languages.setMonarchTokensProvider('openscad', openscadLanguage);
     monaco.languages.setLanguageConfiguration('openscad', openscadLanguageConfig);
     monaco.languages.registerCompletionItemProvider('openscad', openscadCompletionProvider);
+
     this.editor = monaco.editor.create(this._editorContainer.nativeElement, {
-      value: 'font = "Liberation Sans:style=Bold";\nsize = 12;\nheight = 4;\n\nlinear_extrude(height = height) {\n  text("Welcome to Scaddle", size = size, font = font, halign = "center", valign = "center", $fn = 4);\n}',
+      value: DEFAULT_CODE,
       automaticLayout: true,
       language: 'openscad',
       theme: 'vs-dark',
     });
 
-    this.worker.postMessage({ scadCode: this.editor.getValue() });
+    // Debounce saves on every keystroke
+    this.editor.onDidChangeModelContent(() => {
+      this.scheduleSave(this.editor.getValue());
+    });
+
+    // Load persisted content, fall back to DEFAULT_CODE, then kick off first render
+    this.historyService.loadLatest().then(saved => {
+      const code = saved ?? DEFAULT_CODE;
+      if (saved) this.editor.setValue(saved);
+      this.worker.postMessage({ scadCode: code });
+    });
+  }
+
+  private scheduleSave(content: string): void {
+    if (this._suppressSave) return;
+    // User typed while browsing — close dropdown and keep their edits
+    if (this.showHistoryDropdown()) this.closeHistory();
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    const source = this._nextSaveSource;
+    this._nextSaveSource = 'edit';
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
+      this.historyService.save(content, source);
+    }, 2000);
+  }
+
+  private loadHistoryEntry(content: string): void {
+    this._suppressSave = true;
+    this.editor.setValue(content);
+    this._suppressSave = false;
+  }
+
+  async openHistory(): Promise<void> {
+    if (this.showHistoryDropdown()) { this.closeHistory(); return; }
+    const entries = await this.historyService.getHistory();
+    this._contentBeforeHistory = this.editor.getValue();
+    this.historyEntries.set(entries);
+    this.historyIndex.set(-1);
+    this.showHistoryDropdown.set(true);
+  }
+
+  closeHistory(): void {
+    this.showHistoryDropdown.set(false);
+    this.historyEntries.set([]);
+    this.historyIndex.set(-1);
+    this.loadHistoryEntry(this._contentBeforeHistory);
+  }
+
+  selectHistoryEntry(index: number): void {
+    this.historyIndex.set(index);
+    this.loadHistoryEntry(this.historyEntries()[index].content);
+  }
+
+  restoreHistory(): void {
+    const idx = this.historyIndex();
+    const content = idx >= 0 ? this.historyEntries()[idx].content : this._contentBeforeHistory;
+    this.showHistoryDropdown.set(false);
+    this.historyEntries.set([]);
+    this.historyIndex.set(-1);
+    this.historyService.save(content, 'restore');
+    this.worker.postMessage({ scadCode: content });
+  }
+
+  async clearHistory(): Promise<void> {
+    await this.historyService.clear();
+    this.historyEntries.set([]);
+    this.historyIndex.set(-1);
+    this.showHistoryDropdown.set(false);
+  }
+
+  sourceLabel(source: HistorySource | undefined): string {
+    switch (source) {
+      case 'ai':        return 'AI generated';
+      case 'translate': return 'Translated';
+      case 'rotate':    return 'Rotated';
+      case 'scale':     return 'Scaled';
+      case 'restore':   return 'Restored';
+      default:          return 'Code edited';
+    }
+  }
+
+  sourceColor(source: HistorySource | undefined): string {
+    switch (source) {
+      case 'ai':        return 'text-violet-400';
+      case 'translate': return 'text-blue-400';
+      case 'rotate':    return 'text-orange-400';
+      case 'scale':     return 'text-green-400';
+      case 'restore':   return 'text-cyan-400';
+      default:          return 'text-zinc-400';
+    }
+  }
+
+  formatHistoryTime(ts: number): string {
+    if (!ts) return '';
+    const d    = new Date(ts);
+    const now  = new Date();
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === now.toDateString()) return time;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time;
   }
 
   ngAfterViewInit(): void {
@@ -85,6 +205,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     const current = this.editor.getValue();
     const updated = applyTransformToScad(current, transform);
     if (updated !== current) {
+      this._nextSaveSource = transform.tool;
       this.editor.setValue(updated);
       this.worker.postMessage({ scadCode: updated });
     }
@@ -92,6 +213,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   onCodeReceived(code: string | undefined) {
     if (code) {
+      this._nextSaveSource = 'ai';
       this.editor.setValue(code);
       this.worker.postMessage({ scadCode: code });
     }

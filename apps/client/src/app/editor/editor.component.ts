@@ -24,6 +24,16 @@ export class EditorComponent implements OnInit, AfterViewInit {
   isEditorVisible = false;
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
 
+  readonly vpX = signal('0.000');
+  readonly vpY = signal('0.000');
+  readonly vpZ = signal('0.000');
+
+  onCameraMoved(pos: { x: number; y: number; z: number }): void {
+    this.vpX.set(pos.x.toFixed(3));
+    this.vpY.set(pos.y.toFixed(3));
+    this.vpZ.set(pos.z.toFixed(3));
+  }
+
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
   user = this.authService.user;

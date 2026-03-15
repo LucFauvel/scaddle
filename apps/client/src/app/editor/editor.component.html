@@ -94,6 +94,7 @@
       [offData]="currentOff()"
       [stlBytes]="currentStl()"
       (transformApplied)="onTransformApplied($event)"
+      (cameraMoved)="onCameraMoved($event)"
       class="absolute h-full w-full"
     ></app-renderer>
   </div>
@@ -123,15 +124,15 @@
         <div class="space-y-1.5">
           <div class="flex justify-between items-center">
             <span class="text-xs text-zinc-600">X</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">0.000</span>
+            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpX() }}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-xs text-zinc-600">Y</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">0.000</span>
+            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpY() }}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-xs text-zinc-600">Z</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">0.000</span>
+            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpZ() }}</span>
           </div>
         </div>
       </div>

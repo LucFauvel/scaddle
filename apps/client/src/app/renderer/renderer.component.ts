@@ -172,6 +172,8 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
   // ── Outputs ───────────────────────────────────────────────────────────────
   /** Fires when the user finishes a transform drag. Values are in OpenSCAD units/degrees. */
   readonly transformApplied = output<MeshTransform>();
+  /** Fires when camera position changes (rounded to 3dp). Three.js world units. */
+  readonly cameraMoved = output<{ x: number; y: number; z: number }>();
 
   // ── Template-readable state ───────────────────────────────────────────────
   activeTool = signal<ActiveTool>('none');
@@ -411,6 +413,8 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
     this.gizmoScene  = new THREE.Scene();
     this.gizmoCamera = new THREE.PerspectiveCamera(50, 1, 0.01, 10);
+    // Position camera back along +Z so it looks at the arrows from the outside
+    this.gizmoCamera.position.set(0, 0, 2.5);
 
     const arrow = (dir: THREE.Vector3, color: number) =>
       new THREE.ArrowHelper(dir.normalize(), new THREE.Vector3(), 0.75, color, 0.22, 0.09);
@@ -425,8 +429,21 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
   // ── Animation loop ────────────────────────────────────────────────────────
 
+  private _prevCam = { x: NaN, y: NaN, z: NaN };
+
   private animate(): void {
     this.orbitControls.update();
+
+    // Emit camera position when it changes (rounded to 3dp).
+    // Re-entering the zone only on change keeps CD overhead minimal.
+    const p  = this.camera.position;
+    const rx = Math.round(p.x * 1000) / 1000;
+    const ry = Math.round(p.y * 1000) / 1000;
+    const rz = Math.round(p.z * 1000) / 1000;
+    if (rx !== this._prevCam.x || ry !== this._prevCam.y || rz !== this._prevCam.z) {
+      this._prevCam = { x: rx, y: ry, z: rz };
+      this.ngZone.run(() => this.cameraMoved.emit(this._prevCam));
+    }
 
     // Adaptive grid: cell size tracks camera distance logarithmically
     const dist     = this.camera.position.distanceTo(this.orbitControls.target);
@@ -436,8 +453,14 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
     this.threeRenderer.render(this.scene, this.camera);
 
-    // Axis gizmo: mirror main camera rotation
+    // Axis gizmo: mirror main camera rotation, keep fixed camera distance
     this.gizmoCamera.quaternion.copy(this.camera.quaternion);
+    // After copying the quaternion the camera's local +Z becomes whatever direction
+    // the main camera is "coming from", so we push it back along its own -Z axis.
+    this.gizmoCamera.position
+      .set(0, 0, 1)
+      .applyQuaternion(this.gizmoCamera.quaternion)
+      .multiplyScalar(2.5);
     this.gizmoRenderer.render(this.gizmoScene, this.gizmoCamera);
   }
 

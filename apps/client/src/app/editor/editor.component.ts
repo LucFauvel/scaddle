@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { MeshTransform } from '../models/mesh-transform';
 import { applyTransformToScad } from '../utils/scad-transform';
+import { offToStlBytes } from '../utils/off-to-stl';
 
 @Component({
   selector: 'app-editor',
@@ -18,6 +19,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
+  currentOff = signal<Uint8Array | null>(null);
   currentStl = signal<Uint8Array | null>(null);
   isEditorVisible = false;
   @ViewChild('editorContainer', { static: true }) _editorContainer!: ElementRef;
@@ -35,7 +37,8 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   constructor() {
     this.worker.onmessage = ({ data }) => {
-      this.currentStl.set(data.stlBytes);
+      this.currentOff.set(data.offData ?? null);
+      this.currentStl.set(data.stlBytes ?? null);
     };
   }
 
@@ -85,20 +88,19 @@ export class EditorComponent implements OnInit, AfterViewInit {
   }
 
   saveStl() {
-    const bytes = this.currentStl();
-    if (bytes) {
-      const blob = new Blob([bytes.slice().buffer], { type: 'application/sla' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'model.stl';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else {
-      console.error('No STL data available to save.');
-    }
+    const off = this.currentOff();
+    const stlFallback = this.currentStl();
+    if (!off && !stlFallback) { console.error('No model data available to save.'); return; }
+    const stlBuf = off ? offToStlBytes(off).buffer as ArrayBuffer : stlFallback!.buffer as ArrayBuffer;
+    const blob = new Blob([stlBuf], { type: 'application/sla' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'model.stl';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   render() {

@@ -17,6 +17,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { MeshTransform } from '../models/mesh-transform';
+import { offToStlBytes } from '../utils/off-to-stl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,77 @@ const GRID_FRAGMENT = /* glsl */ `
   }
 `;
 
+// ─── OFF parser ───────────────────────────────────────────────────────────────
+// Parses OpenSCAD's OFF/COFF output into a Three.js BufferGeometry with per-face
+// vertex colors. Falls back to the default zinc-ish tone for uncolored faces.
+
+const DEFAULT_COLOR = [0x88 / 0xff, 0x88 / 0xff, 0xaa / 0xff] as const;
+
+function parseOff(bytes: Uint8Array): THREE.BufferGeometry {
+  const lines = new TextDecoder()
+    .decode(bytes)
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0 && !l.startsWith('#'));
+
+  let i = 0;
+
+  // Header: "OFF" or "COFF", optionally followed by nV nF nE on the same line.
+  const headerParts = lines[i++].toUpperCase().split(/\s+/);
+  if (!headerParts[0].startsWith('OFF') && !headerParts[0].startsWith('COFF')) {
+    throw new Error(`Unexpected OFF header: ${headerParts[0]}`);
+  }
+
+  // Some writers put counts on the header line ("OFF 8 12 0"); others use the next line.
+  let nV: number, nF: number;
+  if (headerParts.length >= 3 && !isNaN(Number(headerParts[1]))) {
+    nV = Number(headerParts[1]);
+    nF = Number(headerParts[2]);
+  } else {
+    [nV, nF] = lines[i++].split(/\s+/).map(Number);
+  }
+
+  // Vertices
+  const verts: number[] = [];
+  for (let v = 0; v < nV; v++) {
+    const [x, y, z] = lines[i++].split(/\s+/).map(parseFloat);
+    verts.push(x, y, z);
+  }
+
+  // Faces → triangles
+  const positions: number[] = [];
+  const colors: number[]    = [];
+
+  for (let f = 0; f < nF; f++) {
+    const parts = lines[i++].split(/\s+/).map(Number);
+    const n     = parts[0];
+    const idxs  = parts.slice(1, 1 + n);
+    const rest  = parts.slice(1 + n);
+
+    let [r, g, b] = DEFAULT_COLOR;
+    if (rest.length >= 3) {
+      // OpenSCAD writes float 0–1; guard against legacy 0–255 integers
+      r = rest[0] > 1 ? rest[0] / 255 : rest[0];
+      g = rest[1] > 1 ? rest[1] / 255 : rest[1];
+      b = rest[2] > 1 ? rest[2] / 255 : rest[2];
+    }
+
+    // Fan triangulation for n-gon faces
+    for (let t = 1; t < n - 1; t++) {
+      for (const vi of [idxs[0], idxs[t], idxs[t + 1]]) {
+        positions.push(verts[vi * 3], verts[vi * 3 + 1], verts[vi * 3 + 2]);
+        colors.push(r, g, b);
+      }
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('color',    new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 @Component({
@@ -94,6 +166,7 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
   @ViewChild('gizmoCanvas')     private gizmoCanvas!: ElementRef<HTMLCanvasElement>;
 
   // ── Inputs ────────────────────────────────────────────────────────────────
+  offData  = input<Uint8Array | null>();
   stlBytes = input<Uint8Array | null>();
 
   // ── Outputs ───────────────────────────────────────────────────────────────
@@ -130,44 +203,65 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
   private viewportHovered = false;
 
   constructor(private ngZone: NgZone) {
-    // React to new STL bytes arriving from the compile worker
+    // React to new mesh data arriving from the compile worker (OFF preferred, STL fallback)
     effect(() => {
-      const bytes = this.stlBytes();
-      if (!bytes || !this.scene) return;
+      const offBytes = this.offData();
+      const stlBuf   = this.stlBytes();
+      if (!this.scene) return;
 
-      const blob = new Blob([bytes.slice().buffer], { type: 'application/sla' });
-      const url  = URL.createObjectURL(blob);
-
-      new STLLoader().load(url, (geometry) => {
-        const material = new THREE.MeshStandardMaterial({
-          color:     0x8888aa,
-          metalness: 0.3,
-          roughness: 0.6,
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.scale.set(0.1, 0.1, 0.1);
-        mesh.castShadow    = true;
-        mesh.receiveShadow = true;
-
-        if (this.currentMesh) {
-          this.scene.remove(this.currentMesh);
-          this.tfControls?.detach();
-        }
-
-        this.scene.add(mesh);
-        this.currentMesh = mesh;
-
-        // Re-attach transform controls if a transform tool is already active
-        const tool = this.activeTool();
-        if (tool !== 'none' && this.tfControls) {
-          this.tfControls.attach(mesh);
-          this.tfControls.setMode(tool);
-        }
-
-        // Auto-frame the newly loaded mesh
-        this.frameObject();
-        URL.revokeObjectURL(url);
+      let geometry: THREE.BufferGeometry | null = null;
+      let material: THREE.Material = new THREE.MeshStandardMaterial({
+        color:     0x8888aa,
+        metalness: 0.3,
+        roughness: 0.6,
       });
+
+      if (offBytes) {
+        try {
+          geometry = parseOff(offBytes);
+          material = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            metalness:    0.3,
+            roughness:    0.6,
+          });
+        } catch (e) {
+          console.error('OFF parse failed, falling back to STL conversion:', e);
+          try {
+            const stl = offToStlBytes(offBytes);
+            geometry = new STLLoader().parse(stl.buffer as ArrayBuffer);
+          } catch (e2) {
+            console.error('OFF→STL fallback also failed:', e2);
+          }
+        }
+      }
+
+      if (!geometry && stlBuf) {
+        geometry = new STLLoader().parse(stlBuf.buffer as ArrayBuffer);
+      }
+
+      if (!geometry) return;
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.scale.set(0.1, 0.1, 0.1);
+      mesh.castShadow    = true;
+      mesh.receiveShadow = true;
+
+      if (this.currentMesh) {
+        this.scene.remove(this.currentMesh);
+        this.tfControls?.detach();
+      }
+
+      this.scene.add(mesh);
+      this.currentMesh = mesh;
+
+      // Re-attach transform controls if a transform tool is already active
+      const tool = this.activeTool();
+      if (tool !== 'none' && this.tfControls) {
+        this.tfControls.attach(mesh);
+        this.tfControls.setMode(tool);
+      }
+
+      this.frameObject();
     });
   }
 

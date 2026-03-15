@@ -91,6 +91,7 @@
 
     <!-- 3D Viewport — always behind the editor panel -->
     <app-renderer
+      [offData]="currentOff()"
       [stlBytes]="currentStl()"
       (transformApplied)="onTransformApplied($event)"
       class="absolute h-full w-full"

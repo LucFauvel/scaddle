@@ -9,6 +9,7 @@ import { HistoryService, HistoryEntry, HistorySource } from '../services/history
 import { MeshTransform } from '../models/mesh-transform';
 import { applyTransformToScad } from '../utils/scad-transform';
 import { offToStlBytes } from '../utils/off-to-stl';
+import { parseScad, updateScadParam, ScadParam, ScadSymbol } from '../utils/scad-parse';
 
 const DEFAULT_CODE =
 `font = "Liberation Sans:style=Bold";
@@ -48,6 +49,40 @@ export class EditorComponent implements OnInit, AfterViewInit {
   readonly vpX = signal('0.000');
   readonly vpY = signal('0.000');
   readonly vpZ = signal('0.000');
+
+  isGenerating = signal(false);
+
+  // ── Properties / Structure panel ─────────────────────────────────────────
+  scadParams  = signal<ScadParam[]>([]);
+  scadSymbols = signal<ScadSymbol[]>([]);
+  activePanel = signal<'params' | 'structure'>('params');
+
+  private parseAndUpdate(code: string): void {
+    const { params, symbols } = parseScad(code);
+    this.scadParams.set(params);
+    this.scadSymbols.set(symbols);
+  }
+
+  onParamChange(param: ScadParam, rawValue: string): void {
+    const current = this.editor.getValue();
+    const updated = updateScadParam(current, param.name, rawValue);
+    if (updated === current) return;
+    this._nextSaveSource = 'edit';
+    this._suppressSave = true;
+    this.editor.setValue(updated);
+    this._suppressSave = false;
+    this.parseAndUpdate(updated);
+    this.scheduleSave(updated);
+    this.worker.postMessage({ scadCode: updated });
+  }
+
+  jumpToSymbol(symbol: ScadSymbol): void {
+    const lineNumber = symbol.line + 1; // Monaco is 1-indexed
+    this.editor.revealLineInCenter(lineNumber);
+    this.editor.setPosition({ lineNumber, column: 1 });
+    this.editor.focus();
+    if (!this.isEditorVisible) this.isEditorVisible = true;
+  }
 
   onCameraMoved(pos: { x: number; y: number; z: number }): void {
     this.vpX.set(pos.x.toFixed(3));
@@ -91,15 +126,18 @@ export class EditorComponent implements OnInit, AfterViewInit {
       theme: 'vs-dark',
     });
 
-    // Debounce saves on every keystroke
+    // Debounce saves on every keystroke and keep properties panel in sync
     this.editor.onDidChangeModelContent(() => {
-      this.scheduleSave(this.editor.getValue());
+      const code = this.editor.getValue();
+      this.parseAndUpdate(code);
+      this.scheduleSave(code);
     });
 
     // Load persisted content, fall back to DEFAULT_CODE, then kick off first render
     this.historyService.loadLatest().then(saved => {
       const code = saved ?? DEFAULT_CODE;
       if (saved) this.editor.setValue(saved);
+      this.parseAndUpdate(code);
       this.worker.postMessage({ scadCode: code });
     });
   }

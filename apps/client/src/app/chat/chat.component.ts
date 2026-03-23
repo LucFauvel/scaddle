@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TrpcService } from '../services/trpc.service';
 
@@ -11,32 +11,37 @@ import { TrpcService } from '../services/trpc.service';
 })
 export class ChatComponent {
   @ViewChild('output') output!: ElementRef;
-  @Output() codeReceived: EventEmitter<string | undefined> = new EventEmitter<string | undefined>();
-  inputText: string = '';
+  @Input() currentCode = '';
+  @Output() codeReceived = new EventEmitter<string | undefined>();
+  @Output() generating   = new EventEmitter<boolean>();
+
+  inputText = '';
+  isGenerating = signal(false);
 
   constructor(private trpc: TrpcService) {}
 
   sendMessage(message: Event): void {
     message.preventDefault();
-    if (!this.inputText.trim()) {
-      return;
-    }
+    if (!this.inputText.trim() || this.isGenerating()) return;
 
     const textToSend = this.inputText.trim();
     this.inputText = '';
-    const outputElement = this.output.nativeElement;
-    outputElement.innerHTML = 'Generating code...';
+    this.isGenerating.set(true);
+    this.generating.emit(true);
+    this.output.nativeElement.innerHTML = 'Generating code…';
 
-    this.trpc.ask(textToSend).then((response) => {
-      const outputElement = this.output.nativeElement;
-      outputElement.innerHTML = 'Code generated';
-      this.inputText = '';
-      outputElement.scrollTop = outputElement.scrollHeight; // Scroll to the bottom
-      this.codeReceived.emit(response);
-    }).catch((error) => {
-      const outputElement = this.output.nativeElement;
-      outputElement.innerHTML = `Error generating code: ${error.message}`;
-      console.error('Error:', error);
-    });
+    this.trpc.ask(textToSend, this.currentCode)
+      .then((response) => {
+        this.output.nativeElement.innerHTML = 'Code generated.';
+        this.codeReceived.emit(response);
+      })
+      .catch((error) => {
+        this.output.nativeElement.innerHTML = `Error: ${error.message}`;
+        console.error('Error:', error);
+      })
+      .finally(() => {
+        this.isGenerating.set(false);
+        this.generating.emit(false);
+      });
   }
 }

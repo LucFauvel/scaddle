@@ -17,9 +17,10 @@
     <span class="text-cyan-500 text-sm select-none shrink-0">&gt;</span>
     <input
       [(ngModel)]="inputText"
-      class="flex-1 bg-transparent text-zinc-100 text-sm placeholder:text-zinc-600 outline-none"
+      [disabled]="isGenerating()"
+      class="flex-1 bg-transparent text-zinc-100 text-sm placeholder:text-zinc-600 outline-none disabled:opacity-40 disabled:cursor-not-allowed"
       type="text"
-      placeholder="Describe changes to generate..."
+      [placeholder]="isGenerating() ? 'Generating…' : 'Describe changes to generate...'"
       (keydown.enter)="sendMessage($event)"
     />
   </div>

@@ -14,11 +14,15 @@ interface GenAI {
 export const createAppRouter = (genAI: GenAI) =>
   createTRPCRouter({
     askChat: publicProcedure
-      .input(z.string())
+      .input(z.object({ message: z.string(), currentCode: z.string() }))
       .query(async function ({ input }) {
+        const contents = input.currentCode.trim()
+          ? `Current OpenSCAD code:\n\`\`\`openscad\n${input.currentCode}\n\`\`\`\n\nRequest: ${input.message}`
+          : input.message;
+
         const result = await genAI.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: input,
+          contents,
           config: {
             systemInstruction: [
               `You are an engineer and CAD expert.`,

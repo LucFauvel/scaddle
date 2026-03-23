@@ -23,7 +23,7 @@ export class TrpcService {
   }
 
   // Example method to demonstrate service functionality
-  async ask(message: string): Promise<string | undefined> {
-    return await this.client.askChat.query(message);
+  async ask(message: string, currentCode: string): Promise<string | undefined> {
+    return await this.client.askChat.query({ message, currentCode });
   }
 }

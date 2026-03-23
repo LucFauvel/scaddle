@@ -32,7 +32,8 @@
     <button
       type="button"
       (click)="render()"
-      class="h-8 px-3.5 flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 rounded border border-cyan-500 hover:border-cyan-400 text-zinc-950 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-400 focus-visible:outline-none"
+      [disabled]="isGenerating()"
+      class="h-8 px-3.5 flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed rounded border border-cyan-500 hover:border-cyan-400 text-zinc-950 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-400 focus-visible:outline-none"
     >
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
@@ -44,7 +45,8 @@
     <button
       type="button"
       (click)="saveStl()"
-      class="h-8 px-3.5 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded border border-zinc-700 hover:border-zinc-600 text-zinc-200 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+      [disabled]="isGenerating()"
+      class="h-8 px-3.5 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed rounded border border-zinc-700 hover:border-zinc-600 text-zinc-200 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
     >
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -225,36 +227,163 @@
 
     <!-- Console / chat -->
     <div class="flex-1 min-w-0 bg-zinc-900">
-      <app-chat (codeReceived)="onCodeReceived($event)" class="h-full block"></app-chat>
+      <app-chat [currentCode]="editor ? editor.getValue() : ''" (codeReceived)="onCodeReceived($event)" (generating)="isGenerating.set($event)" class="h-full block"></app-chat>
     </div>
 
-    <!-- Status sidebar -->
+    <!-- Properties panel -->
     <div class="w-px bg-zinc-800/60 shrink-0"></div>
-    <div class="w-48 shrink-0 flex flex-col bg-zinc-900 p-3 gap-3">
-      <div>
-        <div class="text-xs uppercase tracking-widest font-medium text-zinc-600 mb-2">Status</div>
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-green-400 shrink-0"></div>
-          <span class="text-sm font-mono text-zinc-400">Ready</span>
+    <div class="w-56 shrink-0 flex flex-col bg-zinc-900 overflow-hidden">
+
+      <!-- Status row -->
+      <div class="flex items-center gap-2 px-3 h-8 shrink-0 border-b border-zinc-800/60">
+        <div class="w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-200"
+          [ngClass]="isGenerating() ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'"></div>
+        <span class="text-[10px] font-mono flex-1 transition-colors duration-200"
+          [ngClass]="isGenerating() ? 'text-yellow-400' : 'text-zinc-500'">
+          {{ isGenerating() ? 'Generating…' : 'Ready' }}
+        </span>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="flex shrink-0 border-b border-zinc-800/60">
+        <button type="button"
+          (click)="activePanel.set('params')"
+          class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"
+          [ngClass]="activePanel() === 'params'
+            ? 'text-cyan-400 border-cyan-600'
+            : 'text-zinc-600 border-transparent hover:text-zinc-400'">
+          Parameters
+        </button>
+        <button type="button"
+          (click)="activePanel.set('structure')"
+          class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"
+          [ngClass]="activePanel() === 'structure'
+            ? 'text-cyan-400 border-cyan-600'
+            : 'text-zinc-600 border-transparent hover:text-zinc-400'">
+          Structure
+        </button>
+      </div>
+
+      <!-- ── Parameters tab ──────────────────────────────────────────────── -->
+      @if (activePanel() === 'params') {
+        <div class="flex-1 overflow-y-auto p-3">
+          @if (scadParams().length > 0) {
+            <div class="space-y-2">
+              @for (param of scadParams(); track param.name) {
+                <div class="flex flex-col gap-0.5">
+                  <label class="text-[10px] font-mono text-zinc-500 select-none">{{ param.name }}</label>
+
+                  @if (param.type === 'boolean') {
+                    <!-- Boolean → toggle -->
+                    <button type="button"
+                      (click)="onParamChange(param, param.rawValue === 'true' ? 'false' : 'true')"
+                      class="h-6 w-full flex items-center gap-2 px-2 rounded border transition-colors duration-100"
+                      [ngClass]="param.rawValue === 'true'
+                        ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-500 hover:border-zinc-600'">
+                      <div class="w-2 h-2 rounded-full shrink-0"
+                        [ngClass]="param.rawValue === 'true' ? 'bg-cyan-400' : 'bg-zinc-600'"></div>
+                      <span class="text-xs font-mono">{{ param.rawValue }}</span>
+                    </button>
+
+                  } @else if (param.type === 'string') {
+                    <!-- String → text input, strip/add quotes on commit -->
+                    <input type="text"
+                      [value]="param.rawValue.slice(1, -1)"
+                      (keydown.enter)="onParamChange(param, '&quot;' + $any($event.target).value + '&quot;'); $any($event.target).blur()"
+                      (blur)="onParamChange(param, '&quot;' + $any($event.target).value + '&quot;')"
+                      class="h-6 w-full px-2 bg-zinc-800 border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 rounded text-xs font-mono text-zinc-200 outline-none transition-colors duration-75" />
+
+                  } @else if (param.type === 'number') {
+                    <!-- Number → number input -->
+                    <input type="number"
+                      [value]="param.rawValue"
+                      (keydown.enter)="onParamChange(param, $any($event.target).value); $any($event.target).blur()"
+                      (blur)="onParamChange(param, $any($event.target).value)"
+                      class="h-6 w-full px-2 bg-zinc-800 border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 rounded text-xs font-mono tabular-nums text-zinc-200 outline-none transition-colors duration-75" />
+
+                  } @else {
+                    <!-- Vector / other → plain text -->
+                    <input type="text"
+                      [value]="param.rawValue"
+                      (keydown.enter)="onParamChange(param, $any($event.target).value); $any($event.target).blur()"
+                      (blur)="onParamChange(param, $any($event.target).value)"
+                      class="h-6 w-full px-2 bg-zinc-800 border border-zinc-700 hover:border-zinc-600 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/30 rounded text-xs font-mono text-zinc-200 outline-none transition-colors duration-75" />
+                  }
+
+                </div>
+              }
+            </div>
+          } @else {
+            <!-- Empty state -->
+            <div class="flex flex-col items-center justify-center gap-1.5 py-8 text-center select-none">
+              <svg class="w-6 h-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <span class="text-xs font-medium text-zinc-500">No parameters</span>
+              <span class="text-[11px] text-zinc-600">Add top-level variables<br>to your script</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ── Structure tab ───────────────────────────────────────────────── -->
+      @if (activePanel() === 'structure') {
+        <div class="flex-1 overflow-y-auto p-3">
+          @if (scadSymbols().length > 0) {
+            <div class="space-y-0.5">
+              @for (sym of scadSymbols(); track sym.name + sym.line) {
+                <button type="button"
+                  (click)="jumpToSymbol(sym)"
+                  class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-zinc-800/70 transition-colors duration-100 group">
+                  <!-- Kind badge -->
+                  <span class="text-[9px] uppercase font-bold w-8 shrink-0 text-center rounded py-0.5"
+                    [ngClass]="sym.kind === 'module'
+                      ? 'bg-violet-950/60 text-violet-400'
+                      : 'bg-amber-950/60 text-amber-400'">
+                    {{ sym.kind === 'module' ? 'mod' : 'fn' }}
+                  </span>
+                  <span class="text-xs font-mono text-zinc-300 group-hover:text-zinc-100 flex-1 truncate transition-colors duration-100">
+                    {{ sym.name }}
+                  </span>
+                  <!-- Line number -->
+                  <span class="text-[10px] font-mono text-zinc-700 shrink-0">:{{ sym.line + 1 }}</span>
+                </button>
+              }
+            </div>
+          } @else {
+            <!-- Empty state -->
+            <div class="flex flex-col items-center justify-center gap-1.5 py-8 text-center select-none">
+              <svg class="w-6 h-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+              </svg>
+              <span class="text-xs font-medium text-zinc-500">No modules</span>
+              <span class="text-[11px] text-zinc-600">Define modules or functions<br>to see them here</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Viewport footer -->
+      <div class="shrink-0 border-t border-zinc-800/60 px-3 py-1.5">
+        <div class="text-[9px] uppercase tracking-widest font-medium text-zinc-700 mb-1">Camera</div>
+        <div class="grid grid-cols-3 gap-x-1">
+          <div class="flex items-center gap-1">
+            <span class="text-[9px] font-semibold text-red-900">X</span>
+            <span class="text-[10px] font-mono tabular-nums text-zinc-600 truncate">{{ vpX() }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[9px] font-semibold text-green-900">Y</span>
+            <span class="text-[10px] font-mono tabular-nums text-zinc-600 truncate">{{ vpY() }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[9px] font-semibold text-blue-900">Z</span>
+            <span class="text-[10px] font-mono tabular-nums text-zinc-600 truncate">{{ vpZ() }}</span>
+          </div>
         </div>
       </div>
-      <div class="border-t border-zinc-800/60 pt-3">
-        <div class="text-xs uppercase tracking-widest font-medium text-zinc-600 mb-2">Viewport</div>
-        <div class="space-y-1.5">
-          <div class="flex justify-between items-center">
-            <span class="text-xs text-zinc-600">X</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpX() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-xs text-zinc-600">Y</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpY() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-xs text-zinc-600">Z</span>
-            <span class="text-sm font-mono tabular-nums text-zinc-400">{{ vpZ() }}</span>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 

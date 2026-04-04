@@ -1,15 +1,52 @@
 import { Pool } from "pg";
 import { Database } from "bun:sqlite";
+import type { DbAdapter } from './db-adapter';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
 
-function createDatabaseAdapter() {
+// Raw database instance kept for Better Auth (which manages its own queries)
+export const database = isProduction
+  ? new Pool({ connectionString: process.env['DATABASE_URL'] })
+  : new Database(process.env['SQLITE_PATH'] || 'dev.sqlite');
+
+export function createDbAdapter(): DbAdapter {
   if (isProduction) {
-    return new Pool({
-      connectionString: process.env['DATABASE_URL'],
-    });
+    const pool = database as Pool;
+    return {
+      async query<T>(sql: string, params: unknown[] = []) {
+        let i = 0;
+        const pgSql = sql.replace(/\?/g, () => `$${++i}`);
+        const result = await pool.query(pgSql, params as unknown[]);
+        return result.rows as T[];
+      },
+      async run(sql: string, params: unknown[] = []) {
+        let i = 0;
+        const pgSql = sql.replace(/\?/g, () => `$${++i}`);
+        await pool.query(pgSql, params as unknown[]);
+      },
+    };
+  } else {
+    const sqlite = database as Database;
+    return {
+      async query<T>(sql: string, params: unknown[] = []) {
+        return sqlite.prepare(sql).all(...(params as any[])) as T[];
+      },
+      async run(sql: string, params: unknown[] = []) {
+        sqlite.prepare(sql).run(...(params as any[]));
+      },
+    };
   }
-  return new Database(process.env['SQLITE_PATH'] || 'dev.sqlite');
 }
 
-export const database = createDatabaseAdapter();
+export async function initProjectsTable(db: DbAdapter): Promise<void> {
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      code TEXT NOT NULL DEFAULT '',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}

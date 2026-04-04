@@ -1,5 +1,7 @@
-import { publicProcedure, createTRPCRouter } from './trpc';
+import { publicProcedure, protectedProcedure, createTRPCRouter } from './trpc';
+import type { DbAdapter } from './db-adapter';
 import z from 'zod';
+import { randomUUID } from 'crypto';
 
 interface GenAI {
   models: {
@@ -11,7 +13,15 @@ interface GenAI {
   };
 }
 
-export const createAppRouter = (genAI: GenAI) =>
+interface ProjectRow {
+  id: string;
+  title: string;
+  code: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const createAppRouter = (genAI: GenAI, db: DbAdapter) =>
   createTRPCRouter({
     askChat: publicProcedure
       .input(z.object({ message: z.string(), currentCode: z.string() }))
@@ -35,7 +45,64 @@ export const createAppRouter = (genAI: GenAI) =>
           }
         });
         return result.text?.replace(/```openscad\s*/gi, '')?.replace(/```\s*/g, '')?.trim() || '';
-      })
+      }),
+
+    projects: createTRPCRouter({
+      list: protectedProcedure
+        .query(async ({ ctx }) => {
+          return await db.query<ProjectRow>(
+            `SELECT id, title, code, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY updated_at DESC`,
+            [ctx.user.id]
+          );
+        }),
+
+      create: protectedProcedure
+        .input(z.object({
+          title: z.string().min(1).max(100),
+          initialCode: z.string().default(''),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          const id = randomUUID();
+          await db.run(
+            `INSERT INTO projects (id, user_id, title, code) VALUES (?, ?, ?, ?)`,
+            [id, ctx.user.id, input.title, input.initialCode]
+          );
+          const [project] = await db.query<ProjectRow>(
+            `SELECT id, title, code, created_at, updated_at FROM projects WHERE id = ?`,
+            [id]
+          );
+          return project;
+        }),
+
+      update: protectedProcedure
+        .input(z.object({
+          id: z.string(),
+          title: z.string().min(1).max(100).optional(),
+          code: z.string().optional(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+          const sets: string[] = [];
+          const params: unknown[] = [];
+          if (input.title !== undefined) { sets.push('title = ?'); params.push(input.title); }
+          if (input.code !== undefined) { sets.push('code = ?'); params.push(input.code); }
+          if (!sets.length) return;
+          sets.push('updated_at = CURRENT_TIMESTAMP');
+          params.push(input.id, ctx.user.id);
+          await db.run(
+            `UPDATE projects SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`,
+            params
+          );
+        }),
+
+      delete: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
+          await db.run(
+            `DELETE FROM projects WHERE id = ? AND user_id = ?`,
+            [input.id, ctx.user.id]
+          );
+        }),
+    }),
   });
 
 export type AppRouter = ReturnType<typeof createAppRouter>;

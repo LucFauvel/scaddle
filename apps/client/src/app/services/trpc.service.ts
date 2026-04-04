@@ -23,8 +23,23 @@ export class TrpcService {
     });
   }
 
-  // Example method to demonstrate service functionality
   async ask(message: string, currentCode: string): Promise<string | undefined> {
     return await this.client.askChat.query({ message, currentCode });
+  }
+
+  async projectList() {
+    return this.client.projects.list.query();
+  }
+
+  async projectCreate(title: string, initialCode: string) {
+    return this.client.projects.create.mutate({ title, initialCode });
+  }
+
+  async projectUpdate(id: string, data: { title?: string; code?: string }) {
+    return this.client.projects.update.mutate({ id, ...data });
+  }
+
+  async projectDelete(id: string) {
+    return this.client.projects.delete.mutate({ id });
   }
 }

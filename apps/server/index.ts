@@ -5,17 +5,21 @@ import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { auth, runMigrations } from './auth';
+import { createDbAdapter, initProjectsTable } from './db';
 import { toNodeHandler } from 'better-auth/node';
 
 dotenv.config();
 
 await runMigrations();
 
+const db = createDbAdapter();
+await initProjectsTable(db);
+
 const authHandler = toNodeHandler(auth);
 
 const genAI = new GoogleGenAI({ apiKey: process.env['GEMINI_API_KEY'] as string });
 
-const appRouter = createAppRouter(genAI);
+const appRouter = createAppRouter(genAI, db);
 
 export type { AppRouter } from './router';
 

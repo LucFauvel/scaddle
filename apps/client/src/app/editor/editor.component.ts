@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, HostListener, OnInit, signal, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnInit, signal, ViewChild, inject, effect } from '@angular/core';
 
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { HistoryService, HistoryEntry, HistorySource } from '../services/history.service';
+import { ProjectService, Project } from '../services/project.service';
 import { offToStlBytes } from '../utils/off-to-stl';
 import { parseScad, updateScadParam, ScadParam, ScadSymbol } from '../utils/scad-parse';
 
@@ -25,8 +26,9 @@ linear_extrude(height = height) {
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {
-  private authService   = inject(AuthService);
+  private authService    = inject(AuthService);
   private historyService = inject(HistoryService);
+  readonly projectService = inject(ProjectService);
 
   editor!: monaco.editor.IStandaloneCodeEditor;
   worker = new Worker(new URL('../workers/openscad.worker', import.meta.url))
@@ -59,6 +61,14 @@ export class EditorComponent implements OnInit, AfterViewInit {
   showSaveDialog = signal(false);
   saveFilename   = 'model';
   sidebarWidth   = signal(Number(localStorage.getItem('sidebarWidth')) || 224);
+
+  // ── Projects ─────────────────────────────────────────────────────────────
+  showProjectModal = signal(false);
+  newProjectTitle  = '';
+  readonly projects       = this.projectService.projects;
+  readonly currentProject = this.projectService.currentProject;
+  readonly projectsLoading = this.projectService.loading;
+  private _projectSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _resizing = false;
   private _resizeStart = 0;
@@ -140,6 +150,22 @@ export class EditorComponent implements OnInit, AfterViewInit {
       this.currentOff.set(data.offData ?? null);
       this.currentStl.set(data.stlBytes ?? null);
     };
+
+    // Load/clear projects whenever auth state changes
+    effect(() => {
+      const authed = this.isAuthenticated();
+      if (authed) {
+        this.projectService.loadProjects().then(() => {
+          const lastId = localStorage.getItem('lastProjectId');
+          if (lastId) {
+            const p = this.projectService.projects().find(p => p.id === lastId);
+            if (p) this.switchToProject(p);
+          }
+        });
+      } else {
+        this.projectService.clear();
+      }
+    });
   }
 
   ngOnInit() {
@@ -171,6 +197,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
       const code = this.editor.getValue();
       this.parseAndUpdate(code);
       this.scheduleSave(code);
+      this.scheduleProjectSave(code);
     });
 
     // Load persisted content, fall back to DEFAULT_CODE, then kick off first render
@@ -180,6 +207,67 @@ export class EditorComponent implements OnInit, AfterViewInit {
       this.parseAndUpdate(code);
       this.worker.postMessage({ scadCode: code });
     });
+  }
+
+  private scheduleProjectSave(code: string): void {
+    const project = this.projectService.currentProject();
+    if (!project || !this.isAuthenticated()) return;
+    if (this._projectSaveTimer) clearTimeout(this._projectSaveTimer);
+    this._projectSaveTimer = setTimeout(async () => {
+      this._projectSaveTimer = null;
+      await this.projectService.updateProject(project.id, { code });
+    }, 3000);
+  }
+
+  switchToProject(project: Project): void {
+    this.projectService.setCurrentProject(project);
+    const code = project.code || DEFAULT_CODE;
+    this._suppressSave = true;
+    this.editor?.setValue(code);
+    this._suppressSave = false;
+    this.parseAndUpdate(code);
+    this.worker.postMessage({ scadCode: code });
+  }
+
+  openProjectModal(): void {
+    this.showProjectModal.set(true);
+  }
+
+  async createProject(): Promise<void> {
+    const title = this.newProjectTitle.trim();
+    if (!title) return;
+    const initialCode = this.editor?.getValue() || DEFAULT_CODE;
+    const project = await this.projectService.createProject(title, initialCode);
+    this.newProjectTitle = '';
+    this.projectService.setCurrentProject(project);
+    this.showProjectModal.set(false);
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    await this.projectService.deleteProject(id);
+    if (!this.projectService.currentProject()) {
+      this._suppressSave = true;
+      this.editor?.setValue(DEFAULT_CODE);
+      this._suppressSave = false;
+      this.parseAndUpdate(DEFAULT_CODE);
+      this.worker.postMessage({ scadCode: DEFAULT_CODE });
+    }
+  }
+
+  formatProjectDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
   private scheduleSave(content: string): void {

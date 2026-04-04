@@ -287,46 +287,45 @@ export class EditorComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async saveStl() {
-    const off = this.currentOff();
-    const stlFallback = this.currentStl();
-    if (!off && !stlFallback) { console.error('No model data available to save.'); return; }
-    const stlBuf = off ? offToStlBytes(off).buffer as ArrayBuffer : stlFallback!.buffer as ArrayBuffer;
-    const blob = new Blob([stlBuf], { type: 'application/sla' });
-
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await (window as any).showSaveFilePicker({
-          suggestedName: `${this.saveFilename}.stl`,
-          types: [{ description: 'STL File', accept: { 'application/sla': ['.stl'] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-      } catch (e: any) {
-        if (e?.name !== 'AbortError') console.error('Save failed:', e);
-      }
-    } else {
-      this.showSaveDialog.set(true);
-    }
+  saveStl() {
+    if (!this.currentOff() && !this.currentStl()) return;
+    this.showSaveDialog.set(true);
   }
 
-  confirmSave() {
+  async confirmSave() {
     const off = this.currentOff();
     const stlFallback = this.currentStl();
     if (!off && !stlFallback) return;
     const stlBuf = off ? offToStlBytes(off).buffer as ArrayBuffer : stlFallback!.buffer as ArrayBuffer;
     const blob = new Blob([stlBuf], { type: 'application/sla' });
     const name = (this.saveFilename.trim() || 'model').replace(/\.stl$/i, '');
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
+
+    this.showSaveDialog.set(false);
+
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: `${name}.stl`,
+          types: [{ description: 'STL File', accept: { 'application/sla': ['.stl'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+        // fall through to <a> download
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
     a.href     = url;
     a.download = `${name}.stl`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    this.showSaveDialog.set(false);
   }
 
   render() {

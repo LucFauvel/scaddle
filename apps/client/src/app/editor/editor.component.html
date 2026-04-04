@@ -214,7 +214,6 @@
     <app-renderer
       [offData]="currentOff()"
       [stlBytes]="currentStl()"
-      (transformApplied)="onTransformApplied($event)"
       (cameraMoved)="onCameraMoved($event)"
       class="absolute h-full w-full"
     ></app-renderer>
@@ -227,12 +226,17 @@
 
     <!-- Console / chat -->
     <div class="flex-1 min-w-0 bg-zinc-900">
-      <app-chat [currentCode]="editor ? editor.getValue() : ''" (codeReceived)="onCodeReceived($event)" (generating)="isGenerating.set($event)" class="h-full block"></app-chat>
+      <app-chat [currentCode]="editor && editor.getValue() !== defaultCode ? editor.getValue() : ''" (codeReceived)="onCodeReceived($event)" (generating)="isGenerating.set($event)" class="h-full block"></app-chat>
     </div>
 
     <!-- Properties panel -->
-    <div class="w-px bg-zinc-800/60 shrink-0"></div>
-    <div class="w-56 shrink-0 flex flex-col bg-zinc-900 overflow-hidden">
+    <div
+      class="w-1 shrink-0 relative flex items-center justify-center cursor-col-resize group bg-zinc-800/60 hover:bg-cyan-600/40 transition-colors duration-100"
+      (mousedown)="onSidebarResizeStart($event)"
+    >
+      <div class="absolute inset-y-0 -left-1 -right-1"></div>
+    </div>
+    <div class="shrink-0 flex flex-col bg-zinc-900 overflow-hidden" [style.width.px]="sidebarWidth()">
 
       <!-- Status row -->
       <div class="flex items-center gap-2 px-3 h-8 shrink-0 border-b border-zinc-800/60">
@@ -483,4 +487,39 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SAVE DIALOG — filename prompt for non-Chromium browsers
+       ═══════════════════════════════════════════════════════════ -->
+  @if (showSaveDialog()) {
+    <div class="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm"
+         (click)="showSaveDialog.set(false)">
+      <div class="bg-zinc-900 border border-zinc-700 rounded p-4 w-72 flex flex-col gap-3"
+           (click)="$event.stopPropagation()">
+        <span class="text-xs uppercase tracking-widest font-medium text-zinc-500">Export STL</span>
+        <div class="flex items-center bg-zinc-800 border border-zinc-700 rounded overflow-hidden focus-within:border-cyan-600 focus-within:ring-1 focus-within:ring-cyan-600/30 transition-colors duration-75">
+          <input
+            type="text"
+            [value]="saveFilename"
+            (input)="saveFilename = $any($event.target).value"
+            (keydown.enter)="confirmSave()"
+            (keydown.escape)="showSaveDialog.set(false)"
+            class="flex-1 h-8 px-2 bg-transparent text-xs font-mono text-zinc-200 outline-none"
+            autofocus
+          />
+          <span class="pr-2 text-xs font-mono text-zinc-600">.stl</span>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button (click)="showSaveDialog.set(false)"
+            class="h-8 px-3 text-xs text-zinc-400 hover:text-zinc-200 rounded hover:bg-zinc-800 transition-colors duration-100">
+            Cancel
+          </button>
+          <button (click)="confirmSave()"
+            class="h-8 px-3 text-xs bg-cyan-600 text-zinc-950 font-medium rounded hover:bg-cyan-500 transition-colors duration-100">
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 }

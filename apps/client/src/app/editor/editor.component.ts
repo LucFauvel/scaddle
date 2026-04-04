@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, ElementRef, OnInit, signal, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnInit, signal, ViewChild, inject } from '@angular/core';
+
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
 import { ChatComponent } from "../chat/chat.component";
@@ -6,12 +7,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { HistoryService, HistoryEntry, HistorySource } from '../services/history.service';
-import { MeshTransform } from '../models/mesh-transform';
-import { applyTransformToScad } from '../utils/scad-transform';
 import { offToStlBytes } from '../utils/off-to-stl';
 import { parseScad, updateScadParam, ScadParam, ScadSymbol } from '../utils/scad-parse';
 
-const DEFAULT_CODE =
+export const DEFAULT_CODE =
 `font = "Liberation Sans:style=Bold";
 size = 12;
 height = 4;
@@ -46,6 +45,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
   private _contentBeforeHistory  = '';
   private _nextSaveSource: HistorySource = 'edit';
 
+  readonly defaultCode = DEFAULT_CODE;
   readonly vpX = signal('0.000');
   readonly vpY = signal('0.000');
   readonly vpZ = signal('0.000');
@@ -55,7 +55,41 @@ export class EditorComponent implements OnInit, AfterViewInit {
   // ── Properties / Structure panel ─────────────────────────────────────────
   scadParams  = signal<ScadParam[]>([]);
   scadSymbols = signal<ScadSymbol[]>([]);
-  activePanel = signal<'params' | 'structure'>('params');
+  activePanel    = signal<'params' | 'structure'>('params');
+  showSaveDialog = signal(false);
+  saveFilename   = 'model';
+  sidebarWidth   = signal(Number(localStorage.getItem('sidebarWidth')) || 224);
+
+  private _resizing = false;
+  private _resizeStart = 0;
+  private _widthAtStart = 0;
+
+  onSidebarResizeStart(e: MouseEvent): void {
+    this._resizing = true;
+    this._resizeStart = e.clientX;
+    this._widthAtStart = this.sidebarWidth();
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onSidebarResizeMove(e: MouseEvent): void {
+    if (!this._resizing) return;
+    const delta = this._resizeStart - e.clientX;
+    this.sidebarWidth.set(Math.max(160, Math.min(480, this._widthAtStart + delta)));
+    e.preventDefault();
+  }
+
+  @HostListener('document:mouseup')
+  onSidebarResizeEnd(): void {
+    if (this._resizing) {
+      localStorage.setItem('sidebarWidth', String(this.sidebarWidth()));
+    }
+    this._resizing = false;
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  }
 
   private parseAndUpdate(code: string): void {
     const { params, symbols } = parseScad(code);
@@ -125,6 +159,12 @@ export class EditorComponent implements OnInit, AfterViewInit {
       language: 'openscad',
       theme: 'vs-dark',
     });
+
+    // Override Monaco's codicon @font-face after it injects its CSS bundle,
+    // so our declaration wins and the font loads from the Angular-served asset.
+    const style = document.createElement('style');
+    style.textContent = `@font-face { font-family: 'codicon'; src: url('/assets/codicons/codicon.ttf') format('truetype'); }`;
+    document.head.appendChild(style);
 
     // Debounce saves on every keystroke and keep properties panel in sync
     this.editor.onDidChangeModelContent(() => {
@@ -239,16 +279,6 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.isEditorVisible = !this.isEditorVisible;
   }
 
-  onTransformApplied(transform: MeshTransform): void {
-    const current = this.editor.getValue();
-    const updated = applyTransformToScad(current, transform);
-    if (updated !== current) {
-      this._nextSaveSource = transform.tool;
-      this.editor.setValue(updated);
-      this.worker.postMessage({ scadCode: updated });
-    }
-  }
-
   onCodeReceived(code: string | undefined) {
     if (code) {
       this._nextSaveSource = 'ai';
@@ -257,20 +287,46 @@ export class EditorComponent implements OnInit, AfterViewInit {
     }
   }
 
-  saveStl() {
+  async saveStl() {
     const off = this.currentOff();
     const stlFallback = this.currentStl();
     if (!off && !stlFallback) { console.error('No model data available to save.'); return; }
     const stlBuf = off ? offToStlBytes(off).buffer as ArrayBuffer : stlFallback!.buffer as ArrayBuffer;
     const blob = new Blob([stlBuf], { type: 'application/sla' });
+
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: `${this.saveFilename}.stl`,
+          types: [{ description: 'STL File', accept: { 'application/sla': ['.stl'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') console.error('Save failed:', e);
+      }
+    } else {
+      this.showSaveDialog.set(true);
+    }
+  }
+
+  confirmSave() {
+    const off = this.currentOff();
+    const stlFallback = this.currentStl();
+    if (!off && !stlFallback) return;
+    const stlBuf = off ? offToStlBytes(off).buffer as ArrayBuffer : stlFallback!.buffer as ArrayBuffer;
+    const blob = new Blob([stlBuf], { type: 'application/sla' });
+    const name = (this.saveFilename.trim() || 'model').replace(/\.stl$/i, '');
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = 'model.stl';
+    a.download = `${name}.stl`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    this.showSaveDialog.set(false);
   }
 
   render() {

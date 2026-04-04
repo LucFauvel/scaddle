@@ -8,79 +8,6 @@
      ════════════════════════════════════════════════════ -->
 <div class="absolute top-3 left-3 z-10 flex flex-col gap-1.5 w-9">
 
-  <!-- Mode buttons group -->
-  <div class="flex flex-col bg-zinc-900/90 backdrop-blur-sm border border-zinc-800/60 rounded overflow-hidden">
-
-    <!-- Select / Orbit -->
-    <button
-      (click)="setActiveTool('none')"
-      title="Select  ·  Esc"
-      class="h-9 flex items-center justify-center transition-colors duration-100"
-      [ngClass]="activeTool() === 'none'
-        ? 'bg-cyan-950/60 text-cyan-400'
-        : 'text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300'"
-    >
-      <!-- Arrow cursor -->
-      <svg class="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M4 2.25a.75.75 0 0 0-.75.75v17.5a.75.75 0 0 0 1.28.53l4.2-4.2 3.26 7.6a.75.75 0 0 0 1.38-.6l-3.26-7.58 5.8-.8a.75.75 0 0 0 .37-1.31L4.53 2.53A.75.75 0 0 0 4 2.25Z"/>
-      </svg>
-    </button>
-
-    <div class="h-px bg-zinc-800/60 mx-1.5"></div>
-
-    <!-- Translate -->
-    <button
-      (click)="setActiveTool('translate')"
-      title="Translate  ·  G"
-      class="h-9 flex items-center justify-center transition-colors duration-100"
-      [ngClass]="activeTool() === 'translate'
-        ? 'bg-cyan-950/60 text-cyan-400'
-        : 'text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300'"
-    >
-      <!-- 4-way move arrows -->
-      <svg class="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="5 9 2 12 5 15"/>
-        <polyline points="9 5 12 2 15 5"/>
-        <polyline points="15 19 12 22 9 19"/>
-        <polyline points="19 9 22 12 19 15"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <line x1="12" y1="2" x2="12" y2="22"/>
-      </svg>
-    </button>
-
-    <!-- Rotate -->
-    <button
-      (click)="setActiveTool('rotate')"
-      title="Rotate  ·  R"
-      class="h-9 flex items-center justify-center transition-colors duration-100"
-      [ngClass]="activeTool() === 'rotate'
-        ? 'bg-cyan-950/60 text-cyan-400'
-        : 'text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300'"
-    >
-      <!-- Circular arrows -->
-      <svg class="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.5 2v6h-6"/>
-        <path d="M2.5 22v-6h6"/>
-        <path d="M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-      </svg>
-    </button>
-
-    <!-- Scale -->
-    <button
-      (click)="setActiveTool('scale')"
-      title="Scale  ·  S"
-      class="h-9 flex items-center justify-center transition-colors duration-100"
-      [ngClass]="activeTool() === 'scale'
-        ? 'bg-cyan-950/60 text-cyan-400'
-        : 'text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-300'"
-    >
-      <!-- Expand corners -->
-      <svg class="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
-      </svg>
-    </button>
-  </div>
-
   <!-- Frame / zoom-to-fit -->
   <button
     (click)="frameObject()"
@@ -132,10 +59,3 @@
      BOTTOM-LEFT — active transform mode indicator
      Appears only when a transform mode is active
      ════════════════════════════════════════════════════ -->
-@if (activeTool() !== 'none') {
-  <div class="absolute bottom-3 left-3 z-10 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800/60 rounded px-2.5 py-1.5">
-    <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0"></div>
-    <span class="text-xs uppercase tracking-widest font-semibold text-cyan-400">{{ activeTool() }}</span>
-    <span class="text-xs text-zinc-600">— Esc to cancel</span>
-  </div>
-}

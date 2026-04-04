@@ -15,13 +15,10 @@ import { NgClass } from '@angular/common';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { MeshTransform } from '../models/mesh-transform';
 import { offToStlBytes } from '../utils/off-to-stl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ActiveTool = 'none' | 'translate' | 'rotate' | 'scale';
 type ViewPresetId = 'perspective' | 'front' | 'right' | 'top';
 
 interface ViewPreset {
@@ -170,13 +167,10 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
   stlBytes = input<Uint8Array | null>();
 
   // ── Outputs ───────────────────────────────────────────────────────────────
-  /** Fires when the user finishes a transform drag. Values are in OpenSCAD units/degrees. */
-  readonly transformApplied = output<MeshTransform>();
   /** Fires when camera position changes (rounded to 3dp). Three.js world units. */
   readonly cameraMoved = output<{ x: number; y: number; z: number }>();
 
   // ── Template-readable state ───────────────────────────────────────────────
-  activeTool = signal<ActiveTool>('none');
   activeView = signal<ViewPresetId>('perspective');
 
   readonly viewPresets: ViewPreset[] = [
@@ -191,7 +185,6 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
   private camera!: THREE.PerspectiveCamera;
   private threeRenderer!: THREE.WebGLRenderer;
   private orbitControls!: OrbitControls;
-  private tfControls!: TransformControls;
   private gridMesh!: THREE.Mesh;
 
   // Axis orientation gizmo — separate renderer on a dedicated small canvas
@@ -250,18 +243,10 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
       if (this.currentMesh) {
         this.scene.remove(this.currentMesh);
-        this.tfControls?.detach();
       }
 
       this.scene.add(mesh);
       this.currentMesh = mesh;
-
-      // Re-attach transform controls if a transform tool is already active
-      const tool = this.activeTool();
-      if (tool !== 'none' && this.tfControls) {
-        this.tfControls.attach(mesh);
-        this.tfControls.setMode(tool);
-      }
 
       this.frameObject();
 
@@ -279,7 +264,6 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
     this.setupMainScene();
     this.setupInfiniteGrid();
     this.setupOrbitControls();
-    this.setupTransformControls();
     this.setupAxisGizmo();
 
     // Run the animation loop outside Angular's zone.
@@ -293,7 +277,6 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
     this.threeRenderer.setAnimationLoop(null);
     this.threeRenderer.dispose();
     this.gizmoRenderer.dispose();
-    this.tfControls.dispose();
     this.orbitControls.dispose();
     (this.gridMesh.material as THREE.ShaderMaterial).dispose();
   }
@@ -367,50 +350,6 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
     this.orbitControls.update();
   }
 
-  private setupTransformControls(): void {
-    this.tfControls = new TransformControls(this.camera, this.threeRenderer.domElement);
-    this.tfControls.setSize(0.8);
-
-    // Disable orbit while the user is dragging a transform handle
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.tfControls.addEventListener('dragging-changed', (event: any) => {
-      this.orbitControls.enabled = !event.value;
-    });
-
-    // Emit the mesh's new transform (in OpenSCAD units) when the drag ends.
-    // Must re-enter Angular's zone because the Three.js event loop runs outside it.
-    this.tfControls.addEventListener('mouseUp', () => {
-      if (!this.currentMesh) return;
-
-      const m             = this.currentMesh;
-      const DISPLAY_SCALE = 0.1; // 1 OpenSCAD unit = 0.1 Three.js units
-      const RAD_TO_DEG    = 180 / Math.PI;
-
-      const transform: MeshTransform = {
-        translate: [
-          m.position.x / DISPLAY_SCALE,
-          m.position.y / DISPLAY_SCALE,
-          m.position.z / DISPLAY_SCALE,
-        ],
-        rotate: [
-          m.rotation.x * RAD_TO_DEG,
-          m.rotation.y * RAD_TO_DEG,
-          m.rotation.z * RAD_TO_DEG,
-        ],
-        scale: [
-          m.scale.x / DISPLAY_SCALE,
-          m.scale.y / DISPLAY_SCALE,
-          m.scale.z / DISPLAY_SCALE,
-        ],
-        tool: this.activeTool() as 'translate' | 'rotate' | 'scale',
-      };
-
-      this.ngZone.run(() => this.transformApplied.emit(transform));
-    });
-
-    this.scene.add(this.tfControls.getHelper());
-  }
-
   private setupAxisGizmo(): void {
     const canvas = this.gizmoCanvas.nativeElement;
 
@@ -471,18 +410,7 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
     this.gizmoRenderer.render(this.gizmoScene, this.gizmoCamera);
   }
 
-  // ── Tool API (called by template) ─────────────────────────────────────────
-
-  setActiveTool(tool: ActiveTool): void {
-    this.activeTool.set(tool);
-
-    if (tool === 'none') {
-      this.tfControls.detach();
-    } else if (this.currentMesh) {
-      this.tfControls.attach(this.currentMesh);
-      this.tfControls.setMode(tool);
-    }
-  }
+  // ── View API (called by template) ─────────────────────────────────────────
 
   frameObject(): void {
     if (!this.currentMesh) {
@@ -555,22 +483,17 @@ export class RendererComponent implements AfterViewInit, OnDestroy {
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   // Only active when the mouse cursor is over the 3D viewport.
-  // This prevents intercepting keystrokes in the Monaco editor or chat input.
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
     if (!this.viewportHovered) return;
 
     switch (event.code) {
-      case 'KeyG':    this.setActiveTool('translate'); break;
-      case 'KeyR':    this.setActiveTool('rotate');    break;
-      case 'KeyS':    this.setActiveTool('scale');     break;
-      case 'Escape':  this.setActiveTool('none');      break;
-      case 'KeyF':    this.frameObject();               break;
-      case 'Numpad1': this.setView('front');            break;
-      case 'Numpad3': this.setView('right');            break;
-      case 'Numpad7': this.setView('top');              break;
-      case 'Numpad5': this.setView('perspective');      break;
+      case 'KeyF':    this.frameObject();           break;
+      case 'Numpad1': this.setView('front');         break;
+      case 'Numpad3': this.setView('right');         break;
+      case 'Numpad7': this.setView('top');           break;
+      case 'Numpad5': this.setView('perspective');   break;
     }
   }
 

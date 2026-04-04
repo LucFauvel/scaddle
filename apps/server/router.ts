@@ -17,23 +17,24 @@ export const createAppRouter = (genAI: GenAI) =>
       .input(z.object({ message: z.string(), currentCode: z.string() }))
       .query(async function ({ input }) {
         const contents = input.currentCode.trim()
-          ? `Current OpenSCAD code:\n\`\`\`openscad\n${input.currentCode}\n\`\`\`\n\nRequest: ${input.message}`
-          : input.message;
+          ? `Current OpenSCAD code:\n\`\`\`openscad\n${input.currentCode}\n\`\`\`\n\nUser request: ${input.message}`
+          : `User request: ${input.message}`;
 
         const result = await genAI.models.generateContent({
           model: "gemini-3-flash-preview",
           contents,
           config: {
             systemInstruction: [
-              `You are an engineer and CAD expert.`,
-              `You are specifically trained to write OpenSCAD code.`,
-              `When you receive a prompt, you will respond with OpenSCAD code that fulfills the request.`,
-              `You will only respond with OpenSCAD code, and nothing else.`,
-              `If you do not know how to write the code, you will respond with an empty string.`
+              `You are an engineer and CAD expert specialising in OpenSCAD.`,
+              `You respond ONLY with raw OpenSCAD code — no markdown fences, no explanation, no commentary.`,
+              `If the user provides existing code, you MUST base your response on that code, modifying only what the request asks for and preserving everything else.`,
+              `If no existing code is provided, generate new code from scratch that fulfills the request.`,
+              `Always expose key dimensions and parameters as top-level variables so they are easy to adjust.`,
+              `If you cannot fulfill the request, respond with an empty string.`,
             ]
           }
         });
-        return result.text?.replace('```openscad', '')?.replace('```', '') || '';
+        return result.text?.replace(/```openscad\s*/gi, '')?.replace(/```\s*/g, '')?.trim() || '';
       })
   });
 

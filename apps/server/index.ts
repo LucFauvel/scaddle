@@ -19,8 +19,12 @@ const appRouter = createAppRouter(genAI);
 
 export type { AppRouter } from './router';
 
+const allowedOrigins = process.env['CORS_ORIGINS']
+  ? process.env['CORS_ORIGINS'].split(',').map(o => o.trim())
+  : true;
+
 const corsMiddleware = cors({
-  origin: ['http://localhost:4200', 'http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true,
 });
 
@@ -38,5 +42,5 @@ const server = createHTTPServer({
   createContext: ({ req }) => createTRPCContext({ headers: new Headers(req.headers as Record<string, string>) }),
 });
 
-server.listen(3000);
+server.listen(3000, '0.0.0.0');
 console.log('Server running on http://localhost:3000');

@@ -88,13 +88,14 @@ export function parseScad(code: string): { params: ScadParam[]; symbols: ScadSym
       continue;
     }
 
-    // ── Top-level variable assignment: name = value; ────────────────────────
-    // Must not be a keyword and must have a semicolon (or end-of-trimmed-line)
-    const varMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+?)(?:;.*)?$/);
+    // ── Variable assignment or module parameter: name = value[;,] ──────────
+    // Handles both top-level `x = 10;` and module param lines `x = 10,`
+    const varMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
     if (varMatch) {
       const name = varMatch[1];
       if (name === 'module' || name === 'function' || name === 'use' || name === 'include') continue;
-      const rawValue = varMatch[2].trim();
+      // Greedy match captures everything; strip trailing semicolon or comma
+      const rawValue = varMatch[2].trim().replace(/[;,]\s*$/, '').trim();
       params.push({ name, rawValue, type: inferType(rawValue), line: i });
     }
   }
@@ -108,11 +109,20 @@ export function parseScad(code: string): { params: ScadParam[]; symbols: ScadSym
  */
 export function updateScadParam(code: string, name: string, newRaw: string): string {
   const lines = code.split('\n');
-  // Match only the assignment part, preserving everything after the semicolon
-  const re = new RegExp(`^(\\s*${name}\\s*=\\s*)(.+?)(\\s*;.*)$`);
+  const reSemicolon = new RegExp(`^(\\s*${name}\\s*=\\s*)(.+?)(\\s*;.*)$`);
+  const reComma     = new RegExp(`^(\\s*${name}\\s*=\\s*)(.+?)(\\s*,.*)$`);
+  const rePlain     = new RegExp(`^(\\s*${name}\\s*=\\s*)(.+?)\\s*$`);
   for (let i = 0; i < lines.length; i++) {
-    if (re.test(lines[i])) {
-      lines[i] = lines[i].replace(re, `$1${newRaw}$3`);
+    if (reSemicolon.test(lines[i])) {
+      lines[i] = lines[i].replace(reSemicolon, `$1${newRaw}$3`);
+      break;
+    }
+    if (reComma.test(lines[i])) {
+      lines[i] = lines[i].replace(reComma, `$1${newRaw}$3`);
+      break;
+    }
+    if (rePlain.test(lines[i])) {
+      lines[i] = lines[i].replace(rePlain, `$1${newRaw}`);
       break;
     }
   }

@@ -1,6 +1,7 @@
 import { createTRPCClient, httpBatchLink, TRPCClient } from '@trpc/client';
 import type { AppRouter } from '../../../../server/router';
 import { Injectable } from '@angular/core';
+import { environment } from '../../environments/environment';
 
 @Injectable({providedIn: 'root'})
 export class TrpcService {
@@ -10,7 +11,7 @@ export class TrpcService {
     this.client = createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
-          url: 'http://localhost:3000',
+          url: environment.apiUrl,
           fetch(url, options) {
             return fetch(url, {
               ...options,

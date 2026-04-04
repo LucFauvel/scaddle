@@ -212,6 +212,21 @@
     <!-- Spacer pushes auth to the right -->
     <div class="flex-1"></div>
 
+    <!-- Settings -->
+    <button
+      (click)="openSettingsModal()"
+      title="Settings"
+      class="h-8 w-8 flex items-center justify-center rounded border transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+      [ngClass]="showSettingsModal()
+        ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400'
+        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:border-zinc-600 hover:text-zinc-200'"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+      </svg>
+    </button>
+
     <!-- Auth controls -->
     @if (isAuthenticated()) {
       <div class="flex items-center gap-2.5">
@@ -549,7 +564,7 @@
       </div>
 
       <!-- New project form -->
-      <div class="px-4 py-3 border-b border-zinc-800/60 shrink-0">
+      <div class="px-4 py-3 border-b border-zinc-800/60 shrink-0 flex flex-col gap-2">
         <div class="flex gap-2">
           <input
             type="text"
@@ -568,6 +583,16 @@
             Create
           </button>
         </div>
+        <label class="flex items-center gap-2 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            [(ngModel)]="newProjectCopyCode"
+            class="w-3 h-3 rounded-sm accent-cyan-500 cursor-pointer"
+          />
+          <span class="text-[11px] text-zinc-500 hover:text-zinc-400 transition-colors duration-100">
+            Copy current code into new project
+          </span>
+        </label>
       </div>
 
       <!-- Project list -->
@@ -618,6 +643,90 @@
         }
       </div>
 
+    </div>
+  </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════════
+     SETTINGS MODAL
+     ═══════════════════════════════════════════════════════════ -->
+@if (showSettingsModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm"
+       (click)="showSettingsModal.set(false)">
+    <div class="w-80 bg-zinc-900 border border-zinc-800/60 rounded shadow-2xl flex flex-col overflow-hidden"
+         (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60 shrink-0">
+        <span class="text-[10px] uppercase tracking-widest font-medium text-zinc-500">Settings</span>
+        <button (click)="showSettingsModal.set(false)"
+          class="w-5 h-5 flex items-center justify-center rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors duration-100">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="px-4 py-4 flex flex-col gap-3">
+
+        <!-- Section label -->
+        <span class="text-[10px] uppercase tracking-widest font-medium text-zinc-600">Gemini API Key</span>
+
+        @if (!isAuthenticated()) {
+          <p class="text-xs text-zinc-600">Sign in to save your own API key.</p>
+
+        } @else if (hasApiKey()) {
+          <!-- Key saved state -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-1 h-8 px-2.5 bg-zinc-800 border border-zinc-700 rounded">
+              <div class="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0"></div>
+              <span class="text-xs text-zinc-400">API key saved</span>
+            </div>
+            <button (click)="clearApiKey()"
+              class="h-8 px-3 rounded border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 hover:border-zinc-600 hover:text-red-400 text-zinc-400 text-xs transition-colors duration-100">
+              Clear
+            </button>
+          </div>
+
+        } @else {
+          <!-- Input state -->
+          <div class="flex items-center bg-zinc-800 border border-zinc-700 rounded overflow-hidden focus-within:border-cyan-600 focus-within:ring-1 focus-within:ring-cyan-600/30 transition-colors duration-75">
+            <input
+              [type]="showApiKeyValue ? 'text' : 'password'"
+              [(ngModel)]="apiKeyInput"
+              placeholder="AIza…"
+              (keydown.enter)="saveApiKey()"
+              (keydown.escape)="showSettingsModal.set(false)"
+              class="flex-1 h-8 px-2.5 bg-transparent text-xs font-mono text-zinc-200 outline-none placeholder:text-zinc-600"
+              autofocus
+            />
+            <button type="button" (click)="showApiKeyValue = !showApiKeyValue"
+              class="h-8 px-2 text-zinc-600 hover:text-zinc-400 transition-colors duration-100">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                @if (showApiKeyValue) {
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                } @else {
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                }
+              </svg>
+            </button>
+          </div>
+          <button (click)="saveApiKey()" [disabled]="!apiKeyInput.trim() || apiKeySaving()"
+            class="h-8 w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed rounded border border-cyan-500 text-zinc-950 text-xs font-medium transition-colors duration-100">
+            {{ apiKeySaving() ? 'Saving…' : 'Save key' }}
+          </button>
+        }
+
+        <p class="text-[11px] text-zinc-600 leading-4">
+          Get a free key at
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
+            class="text-cyan-700 hover:text-cyan-500 transition-colors duration-100">Google AI Studio</a>.
+          Your key is used instead of the server default and is never returned to the client.
+        </p>
+
+      </div>
     </div>
   </div>
 }

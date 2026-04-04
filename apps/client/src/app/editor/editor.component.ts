@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { HistoryService, HistoryEntry, HistorySource } from '../services/history.service';
+import { TrpcService } from '../services/trpc.service';
 import { ProjectService, Project } from '../services/project.service';
 import { offToStlBytes } from '../utils/off-to-stl';
 import { parseScad, updateScadParam, ScadParam, ScadSymbol } from '../utils/scad-parse';
@@ -28,6 +29,7 @@ linear_extrude(height = height) {
 export class EditorComponent implements OnInit, AfterViewInit {
   private authService    = inject(AuthService);
   private historyService = inject(HistoryService);
+  private trpc           = inject(TrpcService);
   readonly projectService = inject(ProjectService);
 
   editor!: monaco.editor.IStandaloneCodeEditor;
@@ -62,9 +64,43 @@ export class EditorComponent implements OnInit, AfterViewInit {
   saveFilename   = 'model';
   sidebarWidth   = signal(Number(localStorage.getItem('sidebarWidth')) || 224);
 
+  // ── Settings ─────────────────────────────────────────────────────────────
+  showSettingsModal = signal(false);
+  hasApiKey         = signal(false);
+  apiKeyInput       = '';
+  apiKeySaving      = signal(false);
+  showApiKeyValue   = false;
+
+  async openSettingsModal(): Promise<void> {
+    this.apiKeyInput     = '';
+    this.showApiKeyValue = false;
+    if (this.isAuthenticated()) {
+      this.hasApiKey.set(await this.trpc.settingsHasApiKey());
+    }
+    this.showSettingsModal.set(true);
+  }
+
+  async saveApiKey(): Promise<void> {
+    if (!this.apiKeyInput.trim()) return;
+    this.apiKeySaving.set(true);
+    try {
+      await this.trpc.settingsSetApiKey(this.apiKeyInput.trim());
+      this.hasApiKey.set(true);
+      this.apiKeyInput = '';
+    } finally {
+      this.apiKeySaving.set(false);
+    }
+  }
+
+  async clearApiKey(): Promise<void> {
+    await this.trpc.settingsClearApiKey();
+    this.hasApiKey.set(false);
+  }
+
   // ── Projects ─────────────────────────────────────────────────────────────
-  showProjectModal = signal(false);
-  newProjectTitle  = '';
+  showProjectModal    = signal(false);
+  newProjectTitle     = '';
+  newProjectCopyCode  = true;
   readonly projects       = this.projectService.projects;
   readonly currentProject = this.projectService.currentProject;
   readonly projectsLoading = this.projectService.loading;
@@ -236,9 +272,10 @@ export class EditorComponent implements OnInit, AfterViewInit {
   async createProject(): Promise<void> {
     const title = this.newProjectTitle.trim();
     if (!title) return;
-    const initialCode = this.editor?.getValue() || DEFAULT_CODE;
+    const initialCode = this.newProjectCopyCode ? (this.editor?.getValue() || DEFAULT_CODE) : '';
     const project = await this.projectService.createProject(title, initialCode);
     this.newProjectTitle = '';
+    this.newProjectCopyCode = true;
     this.projectService.setCurrentProject(project);
     this.showProjectModal.set(false);
   }

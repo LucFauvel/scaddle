@@ -35,11 +35,23 @@ export class TrpcService {
     return this.client.projects.create.mutate({ title, initialCode });
   }
 
-  async projectUpdate(id: string, data: { title?: string; code?: string }) {
+  async projectUpdate(id: string, data: { title?: string; code?: string; chat?: string }) {
     return this.client.projects.update.mutate({ id, ...data });
   }
 
   async projectDelete(id: string) {
     return this.client.projects.delete.mutate({ id });
+  }
+
+  async settingsHasApiKey(): Promise<boolean> {
+    return this.client.settings.hasApiKey.query();
+  }
+
+  async settingsSetApiKey(apiKey: string): Promise<void> {
+    return this.client.settings.setApiKey.mutate({ apiKey });
+  }
+
+  async settingsClearApiKey(): Promise<void> {
+    return this.client.settings.clearApiKey.mutate();
   }
 }

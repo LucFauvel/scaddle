@@ -5,6 +5,7 @@ export interface Project {
   id: string;
   title: string;
   code: string;
+  chat: string; // JSON-serialized ChatMessage[]
   created_at: string;
   updated_at: string;
 }
@@ -35,7 +36,7 @@ export class ProjectService {
     return p;
   }
 
-  async updateProject(id: string, data: { title?: string; code?: string }): Promise<void> {
+  async updateProject(id: string, data: { title?: string; code?: string; chat?: string }): Promise<void> {
     await this.trpc.projectUpdate(id, data);
     this.projects.update(ps => ps.map(p => p.id === id ? { ...p, ...data } : p));
     if (this.currentProject()?.id === id) {

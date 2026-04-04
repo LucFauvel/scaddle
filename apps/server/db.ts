@@ -38,6 +38,15 @@ export function createDbAdapter(): DbAdapter {
   }
 }
 
+export async function initUserSettingsTable(db: DbAdapter): Promise<void> {
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id TEXT PRIMARY KEY,
+      gemini_api_key TEXT NOT NULL
+    )
+  `);
+}
+
 export async function initProjectsTable(db: DbAdapter): Promise<void> {
   await db.run(`
     CREATE TABLE IF NOT EXISTS projects (
@@ -45,8 +54,14 @@ export async function initProjectsTable(db: DbAdapter): Promise<void> {
       user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       code TEXT NOT NULL DEFAULT '',
+      chat TEXT NOT NULL DEFAULT '[]',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Add chat column to tables created before this migration — ignore if already exists.
+  try {
+    await db.run(`ALTER TABLE projects ADD COLUMN chat TEXT NOT NULL DEFAULT '[]'`);
+  } catch { /* column already present */ }
 }

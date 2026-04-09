@@ -145,4 +145,4 @@ A big thank you to the [OpenSCAD](https://openscad.org/) team and the contributo
 
 ## License
 
-GPL-3.0
+GPL-2.0

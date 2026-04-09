@@ -9,7 +9,7 @@
         "^build"
       ],
       "outputs": [
-        "apps/client/dist/**",
+        "apps/server/public/**",
         "apps/client/src/openscad-wasm/build/**",
         "apps/server/dist/**"
       ]

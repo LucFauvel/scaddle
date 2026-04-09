@@ -7,3 +7,4 @@ dist
 *.sqlite-wal
 *.sqlite-shm
 apps/client/src/environments/environment.local.ts
+apps/server/public

@@ -13,7 +13,10 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/scaddle",
+            "outputPath": {
+              "base": "../server/public",
+              "browser": ""
+            },
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -40,7 +43,10 @@
             ],
             "scripts": [
             ],
-            "webWorkerTsConfig": "tsconfig.worker.json"
+            "webWorkerTsConfig": "tsconfig.worker.json",
+            "loader": {
+              ".ttf": "file"
+            }
           },
           "configurations": {
             "production": {

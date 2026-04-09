@@ -1,9 +1,8 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { createAuthClient } from 'better-auth/client';
-import { environment } from '../../environments/environment';
 
 const authClient = createAuthClient({
-  baseURL: environment.apiUrl,
+  baseURL: window.location.origin,
 });
 
 @Injectable({

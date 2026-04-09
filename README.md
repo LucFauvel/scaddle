@@ -5,10 +5,14 @@ An AI-powered OpenSCAD IDE with real-time 3D visualization. Write OpenSCAD code 
 ## Features
 
 - **Code Editor**: Monaco Editor with OpenSCAD syntax highlighting and autocomplete
-- **AI Code Generation**: Describe what you want in natural language, get OpenSCAD code via Gemini 2.5 Flash
+- **AI Code Generation**: Describe what you want in natural language, get OpenSCAD code via Gemini AI
 - **3D Visualization**: Real-time rendering with Three.js and interactive orbit controls
 - **STL Export**: Generate and download STL files for 3D printing
 - **Browser-Based Compilation**: OpenSCAD runs entirely in-browser via WebAssembly
+- **Project Management**: Create, switch between, and auto-save named projects (requires sign-in)
+- **Chat History**: AI conversations persist locally (IndexedDB) and per-project in the database
+- **Bring Your Own Key**: Optionally use your own Gemini API key, stored securely server-side
+- **User Authentication**: Email/password auth via Better Auth
 
 ## Tech Stack
 
@@ -22,9 +26,9 @@ An AI-powered OpenSCAD IDE with real-time 3D visualization. Write OpenSCAD code 
 
 **Backend (Bun)**
 - tRPC Server 11.5.0
-- Google GenAI (Gemini 2.5 Flash)
+- Google GenAI (Gemini)
 - Better Auth 1.3.7
-- PostgreSQL
+- SQLite (dev) / PostgreSQL (production)
 
 **Build Tools**
 - pnpm 10.12.1 (workspaces)
@@ -41,14 +45,19 @@ scaddle/
 │   │   │   │   ├── editor/     # Monaco code editor component
 │   │   │   │   ├── renderer/   # Three.js 3D viewer component
 │   │   │   │   ├── chat/       # AI chat interface component
-│   │   │   │   ├── services/   # tRPC client service
+│   │   │   │   ├── services/   # tRPC, auth, project & chat services
 │   │   │   │   └── workers/    # OpenSCAD WASM web worker
 │   │   │   └── openscad-wasm/  # Prebuilt WASM files
 │   │   └── package.json
 │   └── server/                 # Bun backend
-│       ├── index.ts            # Server entry point & tRPC router
+│       ├── index.ts            # Server entry point (Bun.serve + static files)
+│       ├── router.ts           # tRPC router (AI, projects, settings)
 │       ├── trpc.ts             # tRPC configuration
 │       ├── auth.ts             # Better Auth setup
+│       ├── db.ts               # Database adapter (SQLite/PostgreSQL)
+│       ├── db-adapter.ts       # DbAdapter interface
+│       ├── context.ts          # tRPC context (session resolution)
+│       ├── public/             # Angular build output (gitignored)
 │       └── package.json
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -60,8 +69,8 @@ scaddle/
 - [Node.js](https://nodejs.org/) 18+
 - [Bun](https://bun.sh/) (required for server)
 - [pnpm](https://pnpm.io/) 10.12.1+
-- [PostgreSQL](https://www.postgresql.org/) database
 - [Google Gemini API key](https://ai.google.dev/)
+- [PostgreSQL](https://www.postgresql.org/) (production only; dev uses SQLite automatically)
 
 ## Installation
 
@@ -79,14 +88,17 @@ scaddle/
 3. Configure environment variables. Create `apps/server/.env`:
    ```env
    GEMINI_API_KEY=your_gemini_api_key
-   DATABASE_URL=postgresql://user:password@localhost:5432/scaddle
    BETTER_AUTH_SECRET=your_random_secret_key_min_32_chars
    BETTER_AUTH_URL=http://localhost:3000
+
+   # Production only (dev uses SQLite automatically):
+   # NODE_ENV=production
+   # DATABASE_URL=postgresql://user:password@localhost:5432/scaddle
    ```
 
 4. Run database migrations for authentication:
    ```bash
-   cd apps/server && npx @better-auth/cli migrate
+   cd apps/server && pnpm db:migrate
    ```
 
 ## Development
@@ -96,17 +108,11 @@ Start both client and server in development mode:
 pnpm dev
 ```
 
-- Client: http://localhost:4200
-- Server: http://localhost:3000
+This runs two tasks in parallel via Turbo:
+- **Client**: `ng build --watch` (rebuilds Angular into `apps/server/public/` on changes)
+- **Server**: `bun --watch index.ts` (serves everything on port 3000)
 
-Or run individually:
-```bash
-# Client only
-cd apps/client && pnpm dev
-
-# Server only
-cd apps/server && pnpm dev
-```
+Open http://localhost:3000
 
 ## Production Build
 
@@ -114,9 +120,7 @@ cd apps/server && pnpm dev
 pnpm build
 ```
 
-Build outputs:
-- Client: `apps/client/dist/`
-- Server: `apps/server/dist/`
+The Angular frontend builds into `apps/server/public/`. The Bun server serves both static files and the API from a single process.
 
 ## Usage
 
@@ -129,9 +133,11 @@ Build outputs:
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Start development servers |
+| `pnpm dev` | Build client + start server (watch mode) |
 | `pnpm build` | Build for production |
 | `pnpm test` | Run tests |
+| `cd apps/server && pnpm db:migrate` | Run auth database migrations |
+| `cd apps/server && pnpm db:generate` | Generate auth schema |
 
 ## Acknowledgements
 

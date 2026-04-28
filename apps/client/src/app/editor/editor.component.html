@@ -579,14 +579,22 @@
       </form>
 
       <!-- Modal footer -->
-      <div class="px-5 pb-4 text-center text-xs text-zinc-500">
-        @if (authMode() === 'login') {
-          No account?
-          <button (click)="openAuthModal('signup')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign up</button>
-        } @else {
-          Have an account?
-          <button (click)="openAuthModal('login')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign in</button>
-        }
+      <div class="px-5 pb-4 flex flex-col gap-2 text-center text-xs text-zinc-500">
+        <div>
+          @if (authMode() === 'login') {
+            No account?
+            <button (click)="openAuthModal('signup')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign up</button>
+          } @else {
+            Have an account?
+            <button (click)="openAuthModal('login')" class="text-cyan-500 hover:text-cyan-400 transition-colors ml-1">Sign in</button>
+          }
+        </div>
+        <div class="text-[11px] text-zinc-600 leading-4">
+          By continuing, you agree to our
+          <a href="https://www.freeprivacypolicy.com/live/48fbb8b9-4656-49d3-84eb-894c4c2eb769"
+             target="_blank" rel="noopener"
+             class="text-cyan-700 hover:text-cyan-500 transition-colors duration-100">Privacy Policy</a>.
+        </div>
       </div>
     </div>
   </div>

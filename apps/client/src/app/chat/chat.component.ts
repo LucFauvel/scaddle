@@ -1,8 +1,9 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject, signal, effect } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TrpcService } from '../services/trpc.service';
 import { ProjectService } from '../services/project.service';
 import { ChatStoreService, ChatMessage } from '../services/chat-store.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-chat',
@@ -14,16 +15,28 @@ import { ChatStoreService, ChatMessage } from '../services/chat-store.service';
 export class ChatComponent {
   @ViewChild('messagesEnd') private messagesEnd!: ElementRef;
   @Input() currentCode = '';
-  @Output() codeReceived = new EventEmitter<string | undefined>();
-  @Output() generating   = new EventEmitter<boolean>();
+  @Output() codeReceived  = new EventEmitter<string | undefined>();
+  @Output() generating    = new EventEmitter<boolean>();
+  @Output() openAuth      = new EventEmitter<void>();
+  @Output() openSettings  = new EventEmitter<void>();
 
   private trpc       = inject(TrpcService);
   private projectSvc = inject(ProjectService);
   private chatStore  = inject(ChatStoreService);
+  private authSvc    = inject(AuthService);
 
   inputText    = '';
   isGenerating = signal(false);
   messages     = signal<ChatMessage[]>([]);
+  hasOwnApiKey = signal(false);
+
+  readonly isAuthenticated = this.authSvc.isAuthenticated;
+  // null = no hint needed; otherwise which CTA to show
+  readonly apiKeyHint = computed<'signin' | 'add-key' | null>(() => {
+    if (!this.isAuthenticated()) return 'signin';
+    if (!this.hasOwnApiKey())    return 'add-key';
+    return null;
+  });
 
   constructor() {
     // Reload chat whenever the active project changes (or clears)
@@ -40,6 +53,20 @@ export class ChatComponent {
         });
       }
     });
+
+    // Track whether the signed-in user has their own Gemini API key on file
+    effect(() => {
+      if (this.isAuthenticated()) {
+        this.trpc.settingsHasApiKey().then(v => this.hasOwnApiKey.set(v)).catch(() => this.hasOwnApiKey.set(false));
+      } else {
+        this.hasOwnApiKey.set(false);
+      }
+    });
+  }
+
+  /** True when the error came from the Gemini side (worth suggesting a key for). */
+  isGeminiError(text: string): boolean {
+    return /AI generation failed|Usage limit reached|model is currently busy/i.test(text);
   }
 
   sendMessage(event: Event): void {

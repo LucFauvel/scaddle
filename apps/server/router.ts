@@ -28,7 +28,7 @@ interface ProjectRow {
 export const createAppRouter = (getGenAI: (apiKey?: string) => GenAI, db: DbAdapter) =>
   createTRPCRouter({
     askChat: publicProcedure
-      .input(z.object({ message: z.string(), currentCode: z.string() }))
+      .input(z.object({ message: z.string().trim().min(1), currentCode: z.string() }))
       .query(async function ({ input, ctx }) {
         // Look up user's own API key, fall back to server default (undefined → factory uses default)
         let userKey: string | undefined;
@@ -62,11 +62,21 @@ export const createAppRouter = (getGenAI: (apiKey?: string) => GenAI, db: DbAdap
             }
           });
         } catch (e: unknown) {
-          const msg = String((e as any)?.message ?? '');
-          if (msg.includes('429') || /quota|rate.?limit|resource.?exhaust/i.test(msg)) {
+          const raw = String((e as any)?.message ?? '');
+          // The Gemini SDK wraps the API response as a JSON string in `message`.
+          // Pull out the human-readable bit so the chat doesn't show raw JSON.
+          let msg = raw;
+          try {
+            const parsed = JSON.parse(raw);
+            msg = parsed?.error?.message ?? raw;
+          } catch {}
+          if (raw.includes('429') || /quota|rate.?limit|resource.?exhaust/i.test(raw)) {
             throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Usage limit reached — try again in a moment.' });
           }
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'AI generation failed — please try again.' });
+          if (/503|UNAVAILABLE|high demand/i.test(raw)) {
+            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'The model is currently busy — please try again in a moment.' });
+          }
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: msg ? `AI generation failed: ${msg}` : 'AI generation failed — please try again.' });
         }
         return result.text?.replace(/```openscad\s*/gi, '')?.replace(/```\s*/g, '')?.trim() || '';
       }),

@@ -71,13 +71,51 @@ export class EditorComponent implements OnInit, AfterViewInit {
   apiKeySaving      = signal(false);
   showApiKeyValue   = false;
 
+  // ── Passkeys ─────────────────────────────────────────────────────────────
+  passkeys       = signal<{ id: string; name?: string }[]>([]);
+  passkeyAdding  = signal(false);
+  passkeyError   = signal<string | null>(null);
+
   async openSettingsModal(): Promise<void> {
     this.apiKeyInput     = '';
     this.showApiKeyValue = false;
+    this.passkeyError.set(null);
     if (this.isAuthenticated()) {
       this.hasApiKey.set(await this.trpc.settingsHasApiKey());
+      this.refreshPasskeys();
     }
     this.showSettingsModal.set(true);
+  }
+
+  private async refreshPasskeys(): Promise<void> {
+    try {
+      this.passkeys.set(await this.authService.listPasskeys());
+    } catch {
+      this.passkeys.set([]);
+    }
+  }
+
+  async addPasskey(): Promise<void> {
+    this.passkeyError.set(null);
+    this.passkeyAdding.set(true);
+    try {
+      await this.authService.addPasskey();
+      await this.refreshPasskeys();
+    } catch (err: unknown) {
+      this.passkeyError.set((err as { message?: string })?.message || 'Could not register passkey.');
+    } finally {
+      this.passkeyAdding.set(false);
+    }
+  }
+
+  async deletePasskey(id: string): Promise<void> {
+    this.passkeyError.set(null);
+    try {
+      await this.authService.deletePasskey(id);
+      await this.refreshPasskeys();
+    } catch (err: unknown) {
+      this.passkeyError.set((err as { message?: string })?.message || 'Could not remove passkey.');
+    }
   }
 
   async saveApiKey(): Promise<void> {
@@ -486,6 +524,32 @@ export class EditorComponent implements OnInit, AfterViewInit {
     } catch (err: unknown) {
       const error = err as { message?: string };
       this.authError.set(error.message || 'Authentication failed');
+    } finally {
+      this.authLoading.set(false);
+    }
+  }
+
+  async signInWithProvider(provider: 'github' | 'google') {
+    this.authError.set(null);
+    this.authLoading.set(true);
+    try {
+      await this.authService.signInWithProvider(provider);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      this.authError.set(error.message || 'Authentication failed');
+      this.authLoading.set(false);
+    }
+  }
+
+  async signInWithPasskey() {
+    this.authError.set(null);
+    this.authLoading.set(true);
+    try {
+      await this.authService.signInWithPasskey();
+      this.closeAuthModal();
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      this.authError.set(error.message || 'Passkey sign-in failed');
     } finally {
       this.authLoading.set(false);
     }

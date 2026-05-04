@@ -66,6 +66,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   // ── Settings ─────────────────────────────────────────────────────────────
   showSettingsModal = signal(false);
+  showMoreMenu      = signal(false);
   hasApiKey         = signal(false);
   apiKeyInput       = '';
   apiKeySaving      = signal(false);

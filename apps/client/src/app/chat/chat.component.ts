@@ -1,5 +1,6 @@
 import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgIcon } from '@ng-icons/core';
 import { TrpcService } from '../services/trpc.service';
 import { ProjectService } from '../services/project.service';
 import { ChatStoreService, ChatMessage } from '../services/chat-store.service';
@@ -8,7 +9,7 @@ import { AuthService } from '../services/auth.service';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NgIcon],
   providers: [TrpcService],
   templateUrl: './chat.component.html',
 })

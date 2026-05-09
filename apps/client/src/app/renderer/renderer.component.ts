@@ -12,6 +12,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { NgIcon } from '@ng-icons/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
@@ -155,7 +156,7 @@ function parseOff(bytes: Uint8Array): THREE.BufferGeometry {
 @Component({
   selector: 'app-renderer',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, NgIcon],
   templateUrl: './renderer.component.html',
 })
 export class RendererComponent implements AfterViewInit, OnDestroy {

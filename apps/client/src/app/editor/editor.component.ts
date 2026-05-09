@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, ElementRef, HostListener, OnInit, signal, ViewChild, inject, effect } from '@angular/core';
+import { AfterViewInit, Component, computed, ElementRef, HostListener, OnInit, signal, ViewChild, inject, effect } from '@angular/core';
 
 import * as monaco from 'monaco-editor';
 import { RendererComponent } from "../renderer/renderer.component";
 import { ChatComponent } from "../chat/chat.component";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '../services/auth.service';
 import { HistoryService, HistoryEntry, HistorySource } from '../services/history.service';
 import { TrpcService } from '../services/trpc.service';
@@ -23,7 +24,7 @@ linear_extrude(height = height) {
 
 @Component({
   selector: 'app-editor',
-  imports: [RendererComponent, ChatComponent, CommonModule, FormsModule],
+  imports: [RendererComponent, ChatComponent, CommonModule, FormsModule, NgIcon],
   templateUrl: './editor.component.html',
 })
 export class EditorComponent implements OnInit, AfterViewInit {
@@ -408,6 +409,17 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.historyEntries.set([]);
     this.historyIndex.set(-1);
     this.showHistoryDropdown.set(false);
+  }
+
+  sourceIcon(source: HistorySource | undefined): string {
+    switch (source) {
+      case 'ai':        return 'tablerSparkles';
+      case 'translate': return 'tablerArrowsMove';
+      case 'rotate':    return 'tablerRotate';
+      case 'scale':     return 'tablerArrowsMaximize';
+      case 'restore':   return 'tablerHistory';
+      default:          return 'tablerPencil';
+    }
   }
 
   sourceLabel(source: HistorySource | undefined): string {

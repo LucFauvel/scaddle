@@ -66,6 +66,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
 
   // ── Settings ─────────────────────────────────────────────────────────────
   showSettingsModal = signal(false);
+  showMoreMenu      = signal(false);
   hasApiKey         = signal(false);
   apiKeyInput       = '';
   apiKeySaving      = signal(false);
@@ -211,6 +212,13 @@ export class EditorComponent implements OnInit, AfterViewInit {
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
   user = this.authService.user;
+  userInitials = computed(() => {
+    const u = this.user();
+    if (!u) return '';
+    return (u.name || u.email || '?')
+      .split(/\s+/).slice(0, 2)
+      .map((w: string) => w[0]?.toUpperCase() ?? '').join('');
+  });
   showAuthModal = signal(false);
   authMode = signal<'login' | 'signup'>('login');
   authEmail = '';

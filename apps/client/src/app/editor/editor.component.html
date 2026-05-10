@@ -15,36 +15,36 @@
     @if (isAuthenticated()) {
       <button
         (click)="openProjectModal()"
-        class="h-8 px-2.5 flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none max-w-48"
+        class="h-8 px-2 sm:px-2.5 flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none max-w-48"
         [ngClass]="showProjectModal()
           ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400'
           : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:border-zinc-600 hover:text-zinc-200'"
       >
         <ng-icon name="tablerFolder" size="14" class="shrink-0" />
         @if (currentProject()) {
-          <span class="truncate">{{ currentProject()!.title }}</span>
+          <span class="truncate hidden sm:inline">{{ currentProject()!.title }}</span>
         } @else {
-          <span class="text-zinc-600">No project</span>
+          <span class="text-zinc-600 hidden sm:inline">No project</span>
         }
-        <ng-icon name="tablerChevronDown" size="12" class="shrink-0 text-zinc-600" />
+        <ng-icon name="tablerChevronDown" size="12" class="shrink-0 text-zinc-600 hidden sm:inline-block" />
       </button>
     } @else {
       <button
         (click)="openAuthModal('login')"
-        class="h-8 px-2.5 flex items-center gap-1.5 rounded border border-dashed border-zinc-800 text-xs text-zinc-700 hover:text-zinc-500 hover:border-zinc-700 transition-colors duration-100"
+        class="h-8 px-2 sm:px-2.5 flex items-center gap-1.5 rounded border border-dashed border-zinc-800 text-xs text-zinc-700 hover:text-zinc-500 hover:border-zinc-700 transition-colors duration-100"
       >
         <ng-icon name="tablerFolder" size="14" class="shrink-0" />
-        Sign in to manage projects
+        <span class="hidden sm:inline">Sign in to manage projects</span>
       </button>
     }
 
     <!-- Divider -->
-    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
+    <div class="w-px h-5 bg-zinc-800 mx-0.5 hidden sm:block"></div>
 
     <!-- Editor panel toggle -->
     <button
       (click)="toggleEditor()"
-      class="h-8 px-3 flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+      class="h-8 px-3 hidden sm:flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
       [ngClass]="isEditorVisible
         ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400 hover:bg-cyan-950/80'
         : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:border-zinc-600 hover:text-zinc-200'"
@@ -54,7 +54,7 @@
     </button>
 
     <!-- Divider -->
-    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
+    <div class="w-px h-5 bg-zinc-800 mx-0.5 hidden sm:block"></div>
 
     <!-- Render — primary action -->
     <button
@@ -72,21 +72,21 @@
       type="button"
       (click)="saveStl()"
       [disabled]="isGenerating()"
-      class="h-8 px-3.5 flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed rounded border border-zinc-700 hover:border-zinc-600 text-zinc-200 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+      class="h-8 px-3.5 hidden sm:flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed rounded border border-zinc-700 hover:border-zinc-600 text-zinc-200 text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
     >
       <ng-icon name="tablerDownload" size="16" />
       Export STL
     </button>
 
     <!-- Divider -->
-    <div class="w-px h-5 bg-zinc-800 mx-0.5"></div>
+    <div class="w-px h-5 bg-zinc-800 mx-0.5 hidden sm:block"></div>
 
     <!-- History button + dropdown -->
     <div class="relative">
       <button
         type="button"
         (click)="openHistory()"
-        class="h-8 px-3 flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
+        class="h-8 px-3 hidden sm:flex items-center gap-1.5 rounded border text-xs font-medium transition-colors duration-100 focus-visible:ring-1 focus-visible:ring-cyan-500 focus-visible:outline-none"
         [ngClass]="showHistoryDropdown()
           ? 'bg-cyan-950/60 border-cyan-800/60 text-cyan-400'
           : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:border-zinc-600 hover:text-zinc-200'"
@@ -99,8 +99,8 @@
         <!-- Backdrop -->
         <div class="fixed inset-0 z-20" (click)="closeHistory()"></div>
 
-        <!-- Dropdown panel -->
-        <div class="absolute top-full left-0 mt-1 w-72 z-30 bg-zinc-900 border border-zinc-800/60 rounded shadow-2xl overflow-hidden flex flex-col">
+        <!-- Dropdown panel — anchored to button on desktop, modal-style sheet on mobile -->
+        <div class="fixed top-12 left-3 right-3 z-30 sm:absolute sm:top-full sm:left-0 sm:right-auto sm:mt-1 sm:w-72 bg-zinc-900 border border-zinc-800/60 rounded shadow-2xl overflow-hidden flex flex-col">
 
           <!-- Header -->
           <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 shrink-0">
@@ -208,6 +208,37 @@
         <!-- Dropdown panel -->
         <div class="absolute top-full right-0 mt-1 w-52 z-30 bg-zinc-900 border border-zinc-800/60 rounded shadow-2xl overflow-hidden py-1">
 
+          <!-- Mobile-only: actions that don't fit on the top bar -->
+          <div class="sm:hidden">
+            <button
+              type="button"
+              (click)="toggleEditor(); showMoreMenu.set(false)"
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-zinc-800/60 transition-colors duration-100"
+              [ngClass]="isEditorVisible ? 'text-cyan-400' : 'text-zinc-400 hover:text-zinc-200'"
+            >
+              <ng-icon name="tablerCode" size="16" class="shrink-0" />
+              Editor
+            </button>
+            <button
+              type="button"
+              (click)="saveStl(); showMoreMenu.set(false)"
+              [disabled]="isGenerating()"
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            >
+              <ng-icon name="tablerDownload" size="16" class="shrink-0" />
+              Export STL
+            </button>
+            <button
+              type="button"
+              (click)="openHistory(); showMoreMenu.set(false)"
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 transition-colors duration-100"
+            >
+              <ng-icon name="tablerHistory" size="16" class="shrink-0" />
+              Version History
+            </button>
+            <div class="my-1 h-px bg-zinc-800/60 mx-3"></div>
+          </div>
+
           <!-- GitHub -->
           <a
             href="https://github.com/lucfauvel/scaddle"
@@ -286,11 +317,42 @@
 
   <!-- ═══════════════════════════════════════════════════════════
        BOTTOM PANEL — AI console + status
+       Mobile: single column, chat folded into tab bar.
+       Desktop: chat | resize | properties.
        ═══════════════════════════════════════════════════════════ -->
-  <div class="h-[28%] flex shrink-0 border-t border-zinc-800/60">
+  <div class="h-[40%] sm:h-[28%] flex flex-col sm:flex-row shrink-0 border-t border-zinc-800/60">
+
+    <!-- Mobile tab bar (chat | parameters | structure) -->
+    <div class="flex sm:hidden shrink-0 bg-zinc-900 border-b border-zinc-800/60">
+      <button type="button"
+        (click)="activePanel.set('chat')"
+        class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"
+        [ngClass]="activePanel() === 'chat'
+          ? 'text-cyan-400 border-cyan-600'
+          : 'text-zinc-600 border-transparent hover:text-zinc-400'">
+        Chat
+      </button>
+      <button type="button"
+        (click)="activePanel.set('params')"
+        class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"
+        [ngClass]="activePanel() === 'params'
+          ? 'text-cyan-400 border-cyan-600'
+          : 'text-zinc-600 border-transparent hover:text-zinc-400'">
+        Parameters
+      </button>
+      <button type="button"
+        (click)="activePanel.set('structure')"
+        class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"
+        [ngClass]="activePanel() === 'structure'
+          ? 'text-cyan-400 border-cyan-600'
+          : 'text-zinc-600 border-transparent hover:text-zinc-400'">
+        Structure
+      </button>
+    </div>
 
     <!-- Console / chat -->
-    <div class="flex-1 min-w-0 bg-zinc-900">
+    <div class="flex-1 min-w-0 bg-zinc-900"
+      [class.hidden]="!isDesktop() && activePanel() !== 'chat'">
       <app-chat
         [currentCode]="editor && editor.getValue() !== defaultCode ? editor.getValue() : ''"
         (codeReceived)="onCodeReceived($event)"
@@ -300,17 +362,21 @@
         class="h-full block"></app-chat>
     </div>
 
-    <!-- Properties panel -->
+    <!-- Resize handle (desktop only) -->
     <div
-      class="w-1 shrink-0 relative flex items-center justify-center cursor-col-resize group bg-zinc-800/60 hover:bg-cyan-600/40 transition-colors duration-100"
+      class="w-1 hidden sm:flex shrink-0 relative items-center justify-center cursor-col-resize group bg-zinc-800/60 hover:bg-cyan-600/40 transition-colors duration-100"
       (mousedown)="onSidebarResizeStart($event)"
     >
       <div class="absolute inset-y-0 -left-1 -right-1"></div>
     </div>
-    <div class="shrink-0 flex flex-col bg-zinc-900 overflow-hidden" [style.width.px]="sidebarWidth()">
 
-      <!-- Status row -->
-      <div class="flex items-center gap-2 px-3 h-8 shrink-0 border-b border-zinc-800/60">
+    <!-- Properties panel -->
+    <div class="shrink-0 flex flex-col bg-zinc-900 overflow-hidden flex-1 sm:flex-none"
+      [class.hidden]="!isDesktop() && activePanel() === 'chat'"
+      [style.width.px]="isDesktop() ? sidebarWidth() : null">
+
+      <!-- Status row (desktop-only; mobile relies on chat indicator) -->
+      <div class="hidden sm:flex items-center gap-2 px-3 h-8 shrink-0 border-b border-zinc-800/60">
         <div class="w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-200"
           [ngClass]="isGenerating() ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'"></div>
         <span class="text-[10px] font-mono flex-1 transition-colors duration-200"
@@ -319,8 +385,8 @@
         </span>
       </div>
 
-      <!-- Tab bar -->
-      <div class="flex shrink-0 border-b border-zinc-800/60">
+      <!-- Desktop tab bar (params/structure only — chat tab lives at top on mobile) -->
+      <div class="hidden sm:flex shrink-0 border-b border-zinc-800/60">
         <button type="button"
           (click)="activePanel.set('params')"
           class="flex-1 h-8 text-[10px] uppercase tracking-widest font-medium transition-colors duration-100 border-b-2"

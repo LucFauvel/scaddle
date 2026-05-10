@@ -60,10 +60,24 @@ export class EditorComponent implements OnInit, AfterViewInit {
   // ── Properties / Structure panel ─────────────────────────────────────────
   scadParams  = signal<ScadParam[]>([]);
   scadSymbols = signal<ScadSymbol[]>([]);
-  activePanel    = signal<'params' | 'structure'>('params');
+  activePanel    = signal<'chat' | 'params' | 'structure'>('chat');
   showSaveDialog = signal(false);
   saveFilename   = 'model';
   sidebarWidth   = signal(Number(localStorage.getItem('sidebarWidth')) || 224);
+
+  // Tracks the sm breakpoint (Tailwind default = 640px). Drives the mobile
+  // single-column layout where chat is folded into the tab bar.
+  isDesktop = signal(typeof window !== 'undefined' && window.innerWidth >= 640);
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    const desktop = window.innerWidth >= 640;
+    this.isDesktop.set(desktop);
+    // 'chat' tab only exists on mobile; snap to a real tab when widening.
+    if (desktop && this.activePanel() === 'chat') {
+      this.activePanel.set('params');
+    }
+  }
 
   // ── Settings ─────────────────────────────────────────────────────────────
   showSettingsModal = signal(false);
@@ -249,6 +263,12 @@ export class EditorComponent implements OnInit, AfterViewInit {
         this.projectService.clear();
       }
     });
+
+    // On desktop the chat lives in its own split, so the 'chat' tab is
+    // hidden — kick activePanel to a real tab if we boot on a wide screen.
+    if (this.isDesktop() && this.activePanel() === 'chat') {
+      this.activePanel.set('params');
+    }
   }
 
   ngOnInit() {

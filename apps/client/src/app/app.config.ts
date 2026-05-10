@@ -1,8 +1,70 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideIcons } from '@ng-icons/core';
+import {
+  tablerAlertCircle,
+  tablerArrowsMaximize,
+  tablerArrowsMove,
+  tablerBrandGithub,
+  tablerBrandGoogle,
+  tablerCheck,
+  tablerChevronDown,
+  tablerCode,
+  tablerCrosshair,
+  tablerDotsVertical,
+  tablerDownload,
+  tablerEye,
+  tablerEyeOff,
+  tablerFingerprint,
+  tablerFolder,
+  tablerHistory,
+  tablerLogin,
+  tablerLogout,
+  tablerMenu2,
+  tablerPencil,
+  tablerPlayerPlay,
+  tablerPlus,
+  tablerRotate,
+  tablerSettings,
+  tablerSparkles,
+  tablerTrash,
+  tablerX,
+} from '@ng-icons/tabler-icons';
 
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes)]
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideIcons({
+      tablerAlertCircle,
+      tablerArrowsMaximize,
+      tablerArrowsMove,
+      tablerBrandGithub,
+      tablerBrandGoogle,
+      tablerCheck,
+      tablerChevronDown,
+      tablerCode,
+      tablerCrosshair,
+      tablerDotsVertical,
+      tablerDownload,
+      tablerEye,
+      tablerEyeOff,
+      tablerFingerprint,
+      tablerFolder,
+      tablerHistory,
+      tablerLogin,
+      tablerLogout,
+      tablerMenu2,
+      tablerPencil,
+      tablerPlayerPlay,
+      tablerPlus,
+      tablerRotate,
+      tablerSettings,
+      tablerSparkles,
+      tablerTrash,
+      tablerX,
+    }),
+  ],
 };

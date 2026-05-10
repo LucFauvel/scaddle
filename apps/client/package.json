@@ -18,6 +18,8 @@
     "@angular/platform-browser": "^20.2.1",
     "@angular/platform-browser-dynamic": "^20.2.1",
     "@angular/router": "^20.2.1",
+    "@ng-icons/core": "32.4.0",
+    "@ng-icons/tabler-icons": "32.4.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@trpc/client": "^11.5.0",
     "@zenfs/core": "^2.3.8",
